@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { startOfToday } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
 
+// Личные данные меняются каждую минуту — незачем и нельзя кэшировать эти страницы
+// при сборке (на Vercel билд-машина ещё не видит боевую базу так, как рантайм).
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const dueCount = await prisma.checkpoint.count({
     where: { status: "PENDING", plannedDate: { lte: startOfToday() } },
