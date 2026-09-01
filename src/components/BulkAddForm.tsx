@@ -32,6 +32,8 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
   const [isPending, startTransition] = useTransition();
   const [parsing, setParsing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [showMoreInput, setShowMoreInput] = useState(false);
+  const [moreText, setMoreText] = useState("");
 
   useEffect(() => {
     if (!parsing) {
@@ -67,6 +69,23 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
 
   function addBlankRow() {
     setRows((prev) => [...prev, { place: "", description: "", justification: "", note: "" }]);
+  }
+
+  function parseMore() {
+    setError(null);
+    setParsing(true);
+    startTransition(async () => {
+      const result = await parseActionsWithAI(moreText);
+      setParsing(false);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setRows((prev) => [...prev, ...result.actions]);
+      setRawText((prev) => `${prev}\n\n---\n\n${moreText}`);
+      setMoreText("");
+      setShowMoreInput(false);
+    });
   }
 
   function save() {
@@ -238,13 +257,64 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={addBlankRow}
-        className="self-start text-sm text-ink-600 hover:underline"
-      >
-        + Добавить строку вручную
-      </button>
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={addBlankRow}
+          className="text-sm text-ink-600 hover:underline"
+        >
+          + Добавить строку вручную
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowMoreInput((v) => !v)}
+          className="text-sm text-ink-600 hover:underline"
+        >
+          + Добавить ещё через ИИ
+        </button>
+      </div>
+
+      {showMoreInput && (
+        <div className="flex flex-col gap-2 rounded border border-neutral-200 bg-neutral-50 p-3">
+          <textarea
+            value={moreText}
+            onChange={(e) => setMoreText(e.target.value)}
+            rows={5}
+            disabled={parsing}
+            placeholder="Вставьте ещё кусок текста — новые правки добавятся к уже разобранным…"
+            className={`${input} disabled:bg-neutral-100`}
+          />
+          {parsing ? (
+            <div className="flex items-center gap-3 rounded border border-ink-500/30 bg-ink-50 px-3 py-2.5">
+              <Spinner />
+              <span className="text-sm font-medium text-ink-700">
+                Идёт разбор через Gemini… {elapsed} сек
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={parseMore}
+                disabled={isPending || !moreText.trim()}
+                className="flex items-center gap-2 rounded bg-ink-600 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700 disabled:opacity-50"
+              >
+                Разобрать и добавить
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoreInput(false);
+                  setMoreText("");
+                }}
+                className="text-sm text-neutral-500 hover:text-ink-600"
+              >
+                Отмена
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600">⚠ {error}</p>}
 
