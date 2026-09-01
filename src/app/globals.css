@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-50: oklch(0.97 0.012 291.3);
+  --color-ink-500: oklch(0.48 0.238 274.8);
+  --color-ink-600: oklch(0.413 0.24 270.8);
+  --color-ink-700: oklch(0.361 0.207 271.3);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink-500);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
