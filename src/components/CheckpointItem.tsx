@@ -56,15 +56,26 @@ export default function CheckpointItem({
   const label = status === "DONE" ? "снято" : overdue ? "просрочено" : "ждёт результата";
 
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        title={overdue ? COPY.tooltips.overdue : COPY.tooltips.checkpoints}
-        className={`w-full break-words rounded border px-2 py-1 text-left text-xs leading-snug hover:brightness-95 ${color}`}
-      >
-        {CHECKPOINT_TYPE_LABEL[type]} · {plannedDateLabel} · {label}
-      </button>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-stretch gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          title={overdue ? COPY.tooltips.overdue : COPY.tooltips.checkpoints}
+          className={`min-w-0 flex-1 break-words rounded border px-2 py-1 text-left text-xs leading-snug hover:brightness-95 ${color}`}
+        >
+          {CHECKPOINT_TYPE_LABEL[type]} · {plannedDateLabel} · {label}
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          title="Удалить эту проверку"
+          className="shrink-0 rounded border border-neutral-200 px-1.5 text-xs text-neutral-400 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+        >
+          ✕
+        </button>
+      </div>
+      {deleteError && <span className="text-xs text-red-600">⚠ {deleteError}</span>}
 
       {open && (
         <div className="flex flex-col gap-2 rounded border border-neutral-200 bg-neutral-50 p-2">
@@ -115,17 +126,6 @@ export default function CheckpointItem({
             </button>
             <span className="text-xs text-neutral-400">{COPY.fields.result.hint}</span>
           </form>
-
-          <div className="flex flex-col gap-1 border-t border-neutral-200 pt-2">
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="self-start text-xs text-red-500 hover:text-red-700"
-            >
-              Удалить эту проверку
-            </button>
-            {deleteError && <span className="text-xs text-red-600">⚠ {deleteError}</span>}
-          </div>
         </div>
       )}
     </div>
