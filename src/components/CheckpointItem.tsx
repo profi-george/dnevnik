@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { submitCheckpointResult, updateCheckpointDate } from "@/app/actions";
+import { submitCheckpointResult, updateCheckpointDate, deleteCheckpoint } from "@/app/actions";
 import { CHECKPOINT_TYPE_LABEL } from "@/lib/labels";
 import { COPY } from "@/lib/microcopy";
 
@@ -28,7 +28,17 @@ export default function CheckpointItem({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [dateStatus, setDateStatus] = useState<Status>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  function handleDelete() {
+    if (!window.confirm(`Удалить проверку «${CHECKPOINT_TYPE_LABEL[type]}»? Это не отменить.`)) return;
+    setDeleteError(null);
+    startTransition(async () => {
+      const res = await deleteCheckpoint(id);
+      if (!res.ok) setDeleteError(res.error);
+    });
+  }
 
   useEffect(() => {
     if (!dateStatus) return;
@@ -105,6 +115,17 @@ export default function CheckpointItem({
             </button>
             <span className="text-xs text-neutral-400">{COPY.fields.result.hint}</span>
           </form>
+
+          <div className="flex flex-col gap-1 border-t border-neutral-200 pt-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="self-start text-xs text-red-500 hover:text-red-700"
+            >
+              Удалить эту проверку
+            </button>
+            {deleteError && <span className="text-xs text-red-600">⚠ {deleteError}</span>}
+          </div>
         </div>
       )}
     </div>

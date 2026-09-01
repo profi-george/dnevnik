@@ -199,6 +199,16 @@ export async function updateCheckpointDate(
   return { ok: true };
 }
 
+// Убрать одну конкретную контрольную точку (например, если из трёх нужны не все) —
+// не трогая остальные проверки и само действие.
+export async function deleteCheckpoint(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id проверки." };
+  await prisma.checkpoint.delete({ where: { id } });
+  revalidatePath("/diary");
+  revalidatePath("/today");
+  return { ok: true };
+}
+
 // Полностью убрать действие из дневника вместе с его контрольными точками (каскадом).
 export async function deleteAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
