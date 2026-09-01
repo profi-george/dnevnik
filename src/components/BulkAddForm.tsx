@@ -8,6 +8,8 @@ import type { ParsedAction } from "@/lib/gemini";
 
 type Project = { id: string; name: string };
 
+const DEFAULT_PROJECT_NAME = "Gclinic";
+
 function Spinner() {
   return (
     <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
@@ -25,7 +27,9 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
   const router = useRouter();
   const [step, setStep] = useState<"input" | "review">("input");
   const [rawText, setRawText] = useState("");
-  const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
+  const [projectId, setProjectId] = useState(
+    projects.find((p) => p.name === DEFAULT_PROJECT_NAME)?.id ?? projects[0]?.id ?? "",
+  );
   const [date, setDate] = useState(toDateInputValue(new Date()));
   const [rows, setRows] = useState<ParsedAction[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -114,21 +118,27 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
           </p>
         </div>
 
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className="text-sm font-medium text-neutral-700">Проект</span>
-          <select
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            disabled={parsing}
-            className={`${input} disabled:bg-neutral-100`}
-          >
+          <div className="flex flex-wrap gap-2">
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>
+              <button
+                key={p.id}
+                type="button"
+                disabled={parsing}
+                onClick={() => setProjectId(p.id)}
+                aria-pressed={projectId === p.id}
+                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${
+                  projectId === p.id
+                    ? "border-ink-600 bg-ink-600 text-white"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:border-ink-500 hover:text-ink-600"
+                }`}
+              >
                 {p.name}
-              </option>
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium text-neutral-700">Дата действия</span>

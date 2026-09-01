@@ -9,9 +9,13 @@ type Project = { id: string; name: string };
 
 const F = COPY.fields;
 
+const DEFAULT_PROJECT_NAME = "Gclinic";
+
 export default function AddActionForm({ projects: initialProjects }: { projects: Project[] }) {
   const [projectList, setProjectList] = useState(initialProjects);
-  const [projectId, setProjectId] = useState(initialProjects[0]?.id ?? "");
+  const [projectId, setProjectId] = useState(
+    initialProjects.find((p) => p.name === DEFAULT_PROJECT_NAME)?.id ?? initialProjects[0]?.id ?? "",
+  );
   const [places, setPlaces] = useState<string[]>([]);
   const [noCheckpoints, setNoCheckpoints] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
@@ -65,19 +69,24 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
 
       <div className="flex flex-col gap-1">
         <span className={label}>{F.project.label}</span>
-        <select
-          name="projectId"
-          required
-          value={projectId}
-          onChange={(e) => setProjectId(e.target.value)}
-          className={input}
-        >
+        <input type="hidden" name="projectId" value={projectId} required />
+        <div className="flex flex-wrap gap-2">
           {projectList.map((p) => (
-            <option key={p.id} value={p.id}>
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setProjectId(p.id)}
+              aria-pressed={projectId === p.id}
+              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                projectId === p.id
+                  ? "border-ink-600 bg-ink-600 text-white"
+                  : "border-neutral-300 bg-white text-neutral-700 hover:border-ink-500 hover:text-ink-600"
+              }`}
+            >
               {p.name}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
         {!addingProject ? (
           <>
             <button
