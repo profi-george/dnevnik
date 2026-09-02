@@ -6,6 +6,7 @@ import InlineField from "@/components/InlineField";
 import ReportUrlCell from "@/components/ReportUrlCell";
 import ProjectCell from "@/components/ProjectCell";
 import DeleteActionButton from "@/components/DeleteActionButton";
+import AddCheckpointControl from "@/components/AddCheckpointControl";
 import { deleteAction } from "@/app/actions";
 import { COPY } from "@/lib/microcopy";
 
@@ -304,6 +305,10 @@ export default async function DiaryPage({ searchParams }: Props) {
                         />
                       ))
                     )}
+                    <AddCheckpointControl
+                      actionId={action.id}
+                      actionDateValue={toDateInputValue(action.date)}
+                    />
                   </div>
                 </td>
                 <td className={td}>

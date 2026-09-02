@@ -199,6 +199,29 @@ export async function updateCheckpointDate(
   return { ok: true };
 }
 
+const CHECKPOINT_TYPES = ["DAY", "WEEK", "MONTH", "CUSTOM"] as const;
+type CheckpointTypeValue = (typeof CHECKPOINT_TYPES)[number];
+
+// Добавить новую контрольную точку к уже существующему действию — например, вернуть
+// удалённую по ошибке или добавить дополнительную проверку.
+export async function addCheckpoint(
+  actionId: string,
+  type: CheckpointTypeValue,
+  dateValue: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!actionId || !CHECKPOINT_TYPES.includes(type)) {
+    return { ok: false, error: "Некорректные данные проверки." };
+  }
+  if (!dateValue) return { ok: false, error: "Дата обязательна." };
+
+  await prisma.checkpoint.create({
+    data: { actionId, type, plannedDate: parseDateInput(dateValue), status: "PENDING" },
+  });
+  revalidatePath("/diary");
+  revalidatePath("/today");
+  return { ok: true };
+}
+
 // Убрать одну конкретную контрольную точку (например, если из трёх нужны не все) —
 // не трогая остальные проверки и само действие.
 export async function deleteCheckpoint(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
