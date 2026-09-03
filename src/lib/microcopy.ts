@@ -207,6 +207,7 @@ export const COPY = {
     createAction: "Записать и запланировать проверки",
     createActionNoCheckpoints: "Записать без проверок",
     addActionShort: "Записать действие",
+    addActionAiShort: "Через ИИ",
     firstAction: "Записать первое действие",
     saveResult: "Сохранить результат",
     saveResultOverdue: "Снять с опозданием",
