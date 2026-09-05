@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDateRu, startOfToday } from "@/lib/dates";
-import { submitCheckpointResult } from "@/app/actions";
 import { CHECKPOINT_TYPE_LABEL } from "@/lib/labels";
 import { COPY, dayWord } from "@/lib/microcopy";
+import CheckpointResultForm from "@/components/CheckpointResultForm";
 
 type Props = {
   searchParams: Promise<{ projectId?: string }>;
@@ -103,28 +103,9 @@ export default async function TodayPage({ searchParams }: Props) {
                 </p>
               )}
 
-              <form action={submitCheckpointResult} className="mt-3 flex flex-col gap-2">
-                <input type="hidden" name="id" value={cp.id} />
-                <div className="flex gap-2">
-                  <textarea
-                    name="result"
-                    required
-                    rows={2}
-                    aria-label={COPY.fields.result.label}
-                    placeholder={COPY.fields.result.placeholder}
-                    className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="self-start rounded bg-ink-600 px-3 py-2 text-xs font-medium text-white hover:bg-ink-700"
-                  >
-                    {isOverdue ? COPY.cta.saveResultOverdue : COPY.cta.saveResult}
-                  </button>
-                </div>
-                <p className="text-xs text-neutral-400">
-                  {isOverdue ? COPY.tooltips.overdue : COPY.fields.result.hint}
-                </p>
-              </form>
+              <div className="mt-3">
+                <CheckpointResultForm checkpointId={cp.id} overdue={isOverdue} defaultResult="" />
+              </div>
             </li>
           );
         })}

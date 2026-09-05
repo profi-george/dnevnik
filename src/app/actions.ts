@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { addDays, parseDateInput } from "@/lib/dates";
+import { addDays, parseDateInput, startOfToday } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
-import { parseActionsFromText, type ParsedAction } from "@/lib/gemini";
+import { parseActionsFromText, parseFollowUpActionsFromResult, type ParsedAction } from "@/lib/gemini";
 
 export async function createProject(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -241,18 +241,64 @@ export async function deleteAction(formData: FormData) {
   revalidatePath("/today");
 }
 
-export async function submitCheckpointResult(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  const result = String(formData.get("result") ?? "").trim();
-  if (!id || !result) return;
+export async function submitCheckpointResult(
+  id: string,
+  result: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const trimmed = result.trim();
+  if (!id || !trimmed) {
+    return { ok: false, error: "Впишите результат перед сохранением." };
+  }
 
   await prisma.checkpoint.update({
     where: { id },
-    data: { result, status: "DONE" },
+    data: { result: trimmed, status: "DONE" },
   });
 
-  revalidatePath("/today");
+  // Нарочно без revalidatePath здесь: ЛЮБОЙ revalidatePath в этом экшене заставляет
+  // Next.js тут же перерендерить текущий маршрут — а на /today показаны только
+  // PENDING-проверки, и такой рендер мгновенно убрал бы строку из списка, не дав
+  // шанса на подсказку «Разобрать через ИИ». Чипы статуса на /diary обновляются
+  // локально в CheckpointItem (см. onSaved), без похода на сервер. Обе страницы и
+  // так свежие при обычном переходе (force-dynamic layout); действия, созданные
+  // через разбор результата, сами обновят обе страницы при сохранении.
+  return { ok: true };
+}
+
+// Разбор текста результата проверки на новые действия — если снятие само стало поводом
+// для новой правки в кампании, её тоже нужно занести в дневник отдельной строкой.
+export async function parseCheckpointFollowUp(
+  checkpointId: string,
+  resultText: string,
+): Promise<{ ok: true; actions: ParsedAction[] } | { ok: false; error: string }> {
+  if (!checkpointId) return { ok: false, error: "Не передан id проверки." };
+  const checkpoint = await prisma.checkpoint.findUnique({
+    where: { id: checkpointId },
+    include: { action: true },
+  });
+  if (!checkpoint) return { ok: false, error: "Проверка не найдена." };
+  return parseFollowUpActionsFromResult(resultText, checkpoint.action.place);
+}
+
+export async function createCheckpointFollowUpActions(
+  checkpointId: string,
+  actions: ParsedAction[],
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  if (!checkpointId) return { ok: false, error: "Не передан id проверки." };
+  const checkpoint = await prisma.checkpoint.findUnique({
+    where: { id: checkpointId },
+    include: { action: true },
+  });
+  if (!checkpoint) return { ok: false, error: "Проверка не найдена." };
+
+  const count = await createActionRows(checkpoint.action.projectId, startOfToday(), actions);
+  if (count === 0) {
+    return { ok: false, error: "Нет ни одной заполненной правки для сохранения." };
+  }
+
   revalidatePath("/diary");
+  revalidatePath("/today");
+  return { ok: true, count };
 }
 
 // Разбор одного куска текста на несколько правок через Gemini — для формы массовой записи.
@@ -262,20 +308,12 @@ export async function parseActionsWithAI(
   return parseActionsFromText(rawText);
 }
 
-export async function createActionsBulk(
-  projectId: string,
-  dateValue: string,
-  actions: ParsedAction[],
-): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  if (!projectId) return { ok: false, error: COPY.errors.projectMissing };
-  if (!dateValue) return { ok: false, error: "Дата действия обязательна." };
-
+// Общее создание строк действия с полным набором проверок (сутки/неделя/месяц) —
+// используется и при массовой записи через ИИ, и при разборе результата проверки
+// на новые действия. Возвращает число реально созданных строк (пустые пропускает).
+async function createActionRows(projectId: string, date: Date, actions: ParsedAction[]): Promise<number> {
   const usable = actions.filter((a) => a.place?.trim() && a.description?.trim());
-  if (usable.length === 0) {
-    return { ok: false, error: "Нет ни одной заполненной правки для сохранения." };
-  }
-
-  const date = parseDateInput(dateValue);
+  if (usable.length === 0) return 0;
 
   await prisma.$transaction(
     usable.map((a) =>
@@ -299,7 +337,23 @@ export async function createActionsBulk(
     ),
   );
 
+  return usable.length;
+}
+
+export async function createActionsBulk(
+  projectId: string,
+  dateValue: string,
+  actions: ParsedAction[],
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  if (!projectId) return { ok: false, error: COPY.errors.projectMissing };
+  if (!dateValue) return { ok: false, error: "Дата действия обязательна." };
+
+  const count = await createActionRows(projectId, parseDateInput(dateValue), actions);
+  if (count === 0) {
+    return { ok: false, error: "Нет ни одной заполненной правки для сохранения." };
+  }
+
   revalidatePath("/diary");
   revalidatePath("/today");
-  return { ok: true, count: usable.length };
+  return { ok: true, count };
 }

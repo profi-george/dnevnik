@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { submitCheckpointResult, updateCheckpointDate, deleteCheckpoint } from "@/app/actions";
+import { updateCheckpointDate, deleteCheckpoint } from "@/app/actions";
 import { CHECKPOINT_TYPE_LABEL } from "@/lib/labels";
 import { COPY } from "@/lib/microcopy";
+import CheckpointResultForm from "@/components/CheckpointResultForm";
 
 type Props = {
   id: string;
@@ -29,6 +30,7 @@ export default function CheckpointItem({
   const [open, setOpen] = useState(false);
   const [dateStatus, setDateStatus] = useState<Status>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [locallyDone, setLocallyDone] = useState(false);
   const [, startTransition] = useTransition();
 
   function handleDelete() {
@@ -46,14 +48,18 @@ export default function CheckpointItem({
     return () => window.clearTimeout(timer);
   }, [dateStatus]);
 
-  const color =
-    status === "DONE"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : overdue
-        ? "bg-red-50 text-red-700 border-red-200"
-        : "bg-neutral-50 text-neutral-500 border-neutral-200";
+  // Не ждём сервер, чтобы обновить бейдж: submitCheckpointResult нарочно не
+  // ревалидирует страницы (см. комментарий в actions.ts), поэтому статус здесь
+  // отражаем сразу по колбэку от формы результата.
+  const isDone = status === "DONE" || locallyDone;
 
-  const label = status === "DONE" ? "снято" : overdue ? "просрочено" : "ждёт результата";
+  const color = isDone
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : overdue
+      ? "bg-red-50 text-red-700 border-red-200"
+      : "bg-neutral-50 text-neutral-500 border-neutral-200";
+
+  const label = isDone ? "снято" : overdue ? "просрочено" : "ждёт результата";
 
   return (
     <div className="flex flex-col gap-1">
@@ -107,25 +113,15 @@ export default function CheckpointItem({
             )}
           </label>
 
-          <form action={submitCheckpointResult} className="flex flex-col gap-2">
-            <input type="hidden" name="id" value={id} />
+          <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-neutral-600">{COPY.fields.result.label}</span>
-            <textarea
-              name="result"
-              required
-              rows={2}
-              defaultValue={result ?? ""}
-              placeholder={COPY.fields.result.placeholder}
-              className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
+            <CheckpointResultForm
+              checkpointId={id}
+              overdue={overdue}
+              defaultResult={result ?? ""}
+              onSaved={() => setLocallyDone(true)}
             />
-            <button
-              type="submit"
-              className="self-start rounded bg-ink-600 px-3 py-2 text-xs font-medium text-white hover:bg-ink-700"
-            >
-              {overdue ? COPY.cta.saveResultOverdue : COPY.cta.saveResult}
-            </button>
-            <span className="text-xs text-neutral-400">{COPY.fields.result.hint}</span>
-          </form>
+          </div>
         </div>
       )}
     </div>
