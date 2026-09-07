@@ -8,7 +8,8 @@ import ProjectCell from "@/components/ProjectCell";
 import DeleteActionButton from "@/components/DeleteActionButton";
 import AddCheckpointControl from "@/components/AddCheckpointControl";
 import { deleteAction } from "@/app/actions";
-import { COPY } from "@/lib/microcopy";
+import { COPY, actionWord } from "@/lib/microcopy";
+import { IconSearch, IconX } from "@/components/icons";
 
 type Props = {
   searchParams: Promise<{
@@ -69,9 +70,6 @@ export default async function DiaryPage({ searchParams }: Props) {
       ? { ...COPY.empty.diaryNoProjects, href: "/projects" }
       : { ...COPY.empty.diaryNoActions, href: "/diary/add" };
 
-  const th = "px-2 py-2 text-left text-xs font-medium text-neutral-500";
-  const td = "border-t border-neutral-100 px-1 py-1 align-top";
-
   const baseParams: Record<string, string> = {};
   if (q) baseParams.q = q;
   if (projectId) baseParams.projectId = projectId;
@@ -104,147 +102,148 @@ export default async function DiaryPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-ink-700">{COPY.nav.diary}</h1>
+    <div className="flex flex-col gap-3">
+      {/* Заголовок, счётчик и подсказка — одна строка, вертикаль экономим для таблицы */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div className="flex items-baseline gap-2.5">
+          <h1 className="text-lg font-semibold tracking-tight text-fg">{COPY.nav.diary}</h1>
+          <span className="text-13 tabular-nums text-fg-subtle">
+            {actions.length} {actionWord(actions.length)}
+          </span>
+        </div>
+        <p className="hint">{COPY.tooltips.inlineEdit}</p>
+      </div>
 
-      <form className="flex flex-wrap items-end gap-3 rounded border border-neutral-200 bg-white p-3 text-sm">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-500">Поиск по месту и сути</span>
+      {/* Панель фильтров: одна строка, компактные поля, без вертикальных подписей */}
+      <form className="card flex flex-wrap items-center gap-1.5 p-1.5">
+        <div className="relative">
+          <IconSearch className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
           <input
             type="text"
             name="q"
             defaultValue={q ?? ""}
-            placeholder="Что искали…"
-            className="w-48 rounded border border-neutral-300 px-2 py-1"
+            aria-label="Поиск по месту и сути"
+            placeholder="Поиск по месту и сути…"
+            className="field w-56 pl-8"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-500">{COPY.fields.filterProject.label}</span>
-          <select
-            name="projectId"
-            defaultValue={projectId ?? ""}
-            className="rounded border border-neutral-300 px-2 py-1"
-          >
-            <option value="">{COPY.fields.filterProject.placeholder}</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1" title={COPY.tooltips.periodFilter}>
-          <span className="text-xs text-neutral-500">{COPY.fields.filterFrom.label}</span>
+        </div>
+
+        <select
+          name="projectId"
+          defaultValue={projectId ?? ""}
+          aria-label={COPY.fields.filterProject.label}
+          className="field w-auto"
+        >
+          <option value="">{COPY.fields.filterProject.placeholder}</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+
+        <div
+          className="flex items-center gap-1.5 rounded-md border border-line-soft bg-subtle py-1 pr-1 pl-2.5"
+          title={COPY.tooltips.periodFilter}
+        >
+          <span className="micro">Период</span>
           <input
             type="date"
             name="from"
             defaultValue={from ?? ""}
-            className="rounded border border-neutral-300 px-2 py-1"
+            aria-label={COPY.fields.filterFrom.label}
+            className="field field-sm w-auto"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-500">{COPY.fields.filterTo.label}</span>
+          <span className="text-fg-subtle">—</span>
           <input
             type="date"
             name="to"
             defaultValue={to ?? ""}
-            className="rounded border border-neutral-300 px-2 py-1"
+            aria-label={COPY.fields.filterTo.label}
+            className="field field-sm w-auto"
           />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-500">Сортировка</span>
-          <select
-            name="sort"
-            defaultValue={sortKey}
-            className="rounded border border-neutral-300 px-2 py-1"
-          >
-            {Object.entries(SORT_OPTIONS).map(([key, opt]) => (
-              <option key={key} value={key}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-1.5 pb-1.5 text-neutral-600">
+        </div>
+
+        <select name="sort" defaultValue={sortKey} aria-label="Сортировка" className="field w-auto">
+          {Object.entries(SORT_OPTIONS).map(([key, opt]) => (
+            <option key={key} value={key}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-13 text-fg-muted transition-colors hover:border-line-strong has-[:checked]:border-danger-border has-[:checked]:bg-danger-soft has-[:checked]:text-danger">
           <input
             type="checkbox"
             name="overdue"
             value="1"
             defaultChecked={overdueOnly}
-            className="h-4 w-4 rounded border-neutral-300"
+            className="h-3.5 w-3.5 rounded accent-ink-600"
           />
           Только просроченные
         </label>
-        <button
-          type="submit"
-          className="rounded border border-neutral-300 px-3 py-1.5 text-neutral-700 hover:bg-neutral-100"
-        >
-          {COPY.cta.applyFilters}
-        </button>
-        {filtered && (
-          <Link href="/diary" className="text-xs text-neutral-500 hover:text-ink-600">
-            {COPY.cta.clearFilters}
-          </Link>
-        )}
+
+        <div className="ml-auto flex items-center gap-1.5">
+          {filtered && (
+            <Link href="/diary" className="btn btn-ghost">
+              {COPY.cta.clearFilters}
+            </Link>
+          )}
+          <button type="submit" className="btn btn-secondary">
+            {COPY.cta.applyFilters}
+          </button>
+        </div>
       </form>
 
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-neutral-400">Активные фильтры:</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="micro">Фильтры</span>
           {activeFilters.map((f) => (
             <Link
               key={f.label}
               href={f.clearHref}
               title="Убрать этот фильтр"
-              className="inline-flex items-center gap-1 rounded-full border border-ink-500/30 bg-ink-50 px-2.5 py-1 text-xs text-ink-700 hover:brightness-95"
+              className="chip border-ink-200 bg-ink-50 text-ink-700"
             >
               {f.label}
-              <span aria-hidden>✕</span>
+              <IconX className="h-3 w-3 opacity-60" />
             </Link>
           ))}
         </div>
       )}
 
-      <p className="text-xs text-neutral-400">{COPY.tooltips.inlineEdit}</p>
-
-      <div className="overflow-x-auto rounded border border-neutral-200 bg-white">
-        <table className="w-full table-fixed border-collapse">
+      {/* На широком экране overflow-x-clip (с auto шапка таблицы перестаёт «липнуть»),
+          на узком — горизонтальная прокрутка, чтобы колонки не сминались. */}
+      <div className="card overflow-x-clip max-xl:overflow-x-auto">
+        <table className="tbl table-fixed min-w-[76rem]">
           <colgroup>
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "6%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "8%" }} />
             <col style={{ width: "12%" }} />
-            <col style={{ width: "15%" }} />
+            <col style={{ width: "16%" }} />
             <col style={{ width: "12%" }} />
             <col style={{ width: "5%" }} />
-            <col style={{ width: "21%" }} />
-            <col style={{ width: "11%" }} />
+            <col style={{ width: "24%" }} />
+            <col style={{ width: "12%" }} />
             <col style={{ width: "3%" }} />
           </colgroup>
           <thead>
-            <tr className="bg-neutral-50">
-              <th className={th}>Дата правки</th>
-              <th className={th}>Проект</th>
-              <th className={th} title={COPY.tooltips.place}>
-                Где именно
-              </th>
-              <th className={th}>Что изменили</th>
-              <th className={th} title={COPY.tooltips.justification}>
-                Почему так решили
-              </th>
-              <th className={th} title={COPY.tooltips.reportUrl}>
-                Отчёт
-              </th>
-              <th className={th} title={COPY.tooltips.checkpoints}>
-                Проверки
-              </th>
-              <th className={th}>Заметка</th>
-              <th className={th} aria-hidden></th>
+            <tr>
+              <th>Дата правки</th>
+              <th>Проект</th>
+              <th title={COPY.tooltips.place}>Где именно</th>
+              <th>Что изменили</th>
+              <th title={COPY.tooltips.justification}>Почему так решили</th>
+              <th title={COPY.tooltips.reportUrl}>Отчёт</th>
+              <th title={COPY.tooltips.checkpoints}>Проверки</th>
+              <th>Заметка</th>
+              <th aria-hidden></th>
             </tr>
           </thead>
           <tbody>
             {actions.map((action) => (
-              <tr key={action.id} className="hover:bg-neutral-50/60">
-                <td className={`${td} whitespace-nowrap`}>
+              <tr key={action.id} className="group">
+                <td className="whitespace-nowrap">
                   <InlineField
                     id={action.id}
                     field="date"
@@ -253,7 +252,7 @@ export default async function DiaryPage({ searchParams }: Props) {
                     displayValue={formatDateRu(action.date)}
                   />
                 </td>
-                <td className={td}>
+                <td>
                   <ProjectCell
                     id={action.id}
                     projectId={action.projectId}
@@ -261,7 +260,7 @@ export default async function DiaryPage({ searchParams }: Props) {
                     projects={projects}
                   />
                 </td>
-                <td className={td}>
+                <td>
                   <InlineField
                     id={action.id}
                     field="place"
@@ -269,24 +268,25 @@ export default async function DiaryPage({ searchParams }: Props) {
                     autocompleteProjectId={action.projectId}
                   />
                 </td>
-                <td className={td}>
+                <td>
                   <InlineField id={action.id} field="description" value={action.description} />
                 </td>
-                <td className={td}>
+                <td>
                   <InlineField
                     id={action.id}
                     field="justification"
                     value={action.justification ?? ""}
                     placeholder="—"
+                    tone="muted"
                   />
                 </td>
-                <td className={td}>
+                <td>
                   <ReportUrlCell id={action.id} value={action.reportUrl ?? ""} />
                 </td>
-                <td className={td}>
-                  <div className="flex flex-col gap-1.5">
+                <td>
+                  <div className="flex flex-col gap-1">
                     {action.checkpoints.length === 0 ? (
-                      <span className="inline-flex items-center rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs text-neutral-400">
+                      <span className="chip border-dashed text-fg-subtle">
                         {COPY.empty.noCheckpoints}
                       </span>
                     ) : (
@@ -311,15 +311,16 @@ export default async function DiaryPage({ searchParams }: Props) {
                     />
                   </div>
                 </td>
-                <td className={td}>
+                <td>
                   <InlineField
                     id={action.id}
                     field="note"
                     value={action.note ?? ""}
                     placeholder="—"
+                    tone="muted"
                   />
                 </td>
-                <td className={`${td} text-center`}>
+                <td className="text-center">
                   <form action={deleteAction}>
                     <input type="hidden" name="id" value={action.id} />
                     <DeleteActionButton />
@@ -329,14 +330,11 @@ export default async function DiaryPage({ searchParams }: Props) {
             ))}
             {actions.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-6 py-12">
-                  <div className="mx-auto flex max-w-md flex-col items-center gap-2 text-center">
-                    <p className="text-base font-medium text-neutral-800">{emptyState.title}</p>
-                    <p className="text-sm leading-relaxed text-neutral-500">{emptyState.body}</p>
-                    <Link
-                      href={emptyState.href}
-                      className="mt-2 rounded bg-ink-600 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700"
-                    >
+                <td colSpan={9} className="px-6 py-14">
+                  <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
+                    <p className="text-base font-medium text-fg">{emptyState.title}</p>
+                    <p className="text-13 leading-relaxed text-fg-muted">{emptyState.body}</p>
+                    <Link href={emptyState.href} className="btn btn-primary mt-2">
                       {emptyState.cta}
                     </Link>
                   </div>

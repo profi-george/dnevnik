@@ -5,6 +5,7 @@ import { updateCheckpointDate, deleteCheckpoint } from "@/app/actions";
 import { CHECKPOINT_TYPE_LABEL } from "@/lib/labels";
 import { COPY } from "@/lib/microcopy";
 import CheckpointResultForm from "@/components/CheckpointResultForm";
+import { IconAlert, IconCheck, IconX } from "@/components/icons";
 
 type Props = {
   id: string;
@@ -53,40 +54,63 @@ export default function CheckpointItem({
   // отражаем сразу по колбэку от формы результата.
   const isDone = status === "DONE" || locallyDone;
 
-  const color = isDone
-    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+  // Цветовая кодировка статуса: снято — зелёный, просрочено — красный,
+  // ждёт результата — нейтральный (это спокойное состояние по умолчанию).
+  const tone = isDone
+    ? "border-ok-border bg-ok-soft text-ok"
     : overdue
-      ? "bg-red-50 text-red-700 border-red-200"
-      : "bg-neutral-50 text-neutral-500 border-neutral-200";
+      ? "border-danger-border bg-danger-soft text-danger"
+      : "border-line bg-surface text-fg-muted";
 
-  const label = isDone ? "снято" : overdue ? "просрочено" : "ждёт результата";
+  // В чипе статус короткий, чтобы строка «тип · дата · статус» помещалась целиком:
+  // полная формулировка остаётся в подсказке при наведении.
+  const fullLabel = isDone ? "снято" : overdue ? "просрочено" : "ждёт результата";
+  const label = isDone ? "снято" : overdue ? "просрочено" : "ждёт";
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-stretch gap-1">
+      <div className="flex items-start gap-0.5">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          title={overdue ? COPY.tooltips.overdue : COPY.tooltips.checkpoints}
-          className={`min-w-0 flex-1 break-words rounded border px-2 py-1 text-left text-xs leading-snug hover:brightness-95 ${color}`}
+          aria-expanded={open}
+          title={`${CHECKPOINT_TYPE_LABEL[type]} · ${plannedDateLabel} · ${fullLabel}\n\n${
+            overdue ? COPY.tooltips.overdue : COPY.tooltips.checkpoints
+          }`}
+          className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md border px-2 py-0.5 text-left text-2xs leading-4 transition-colors hover:brightness-[0.97] ${tone}`}
         >
-          {CHECKPOINT_TYPE_LABEL[type]} · {plannedDateLabel} · {label}
+          <span className="dot" aria-hidden />
+          <span className="truncate">
+            <span className="font-medium">{CHECKPOINT_TYPE_LABEL[type]}</span>
+            <span className="opacity-45"> · </span>
+            <span className="tabular-nums">{plannedDateLabel}</span>
+            <span className="opacity-45"> · </span>
+            <span>{label}</span>
+          </span>
+          {label !== fullLabel && <span className="sr-only">{fullLabel}</span>}
         </button>
         <button
           type="button"
           onClick={handleDelete}
           title="Удалить эту проверку"
-          className="shrink-0 rounded border border-neutral-200 px-1.5 text-xs text-neutral-400 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+          aria-label="Удалить эту проверку"
+          className="btn-icon btn-icon-danger h-5 w-5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         >
-          ✕
+          <IconX className="h-3 w-3" />
         </button>
       </div>
-      {deleteError && <span className="text-xs text-red-600">⚠ {deleteError}</span>}
+
+      {deleteError && (
+        <span className="cell-status text-danger">
+          <IconAlert className="h-3 w-3 shrink-0" />
+          {deleteError}
+        </span>
+      )}
 
       {open && (
-        <div className="flex flex-col gap-2 rounded border border-neutral-200 bg-neutral-50 p-2">
+        <div className="panel flex flex-col gap-2 p-2">
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-neutral-600">Дата проверки</span>
+            <span className="micro">Дата проверки</span>
             <input
               type="date"
               defaultValue={plannedDateValue}
@@ -101,20 +125,26 @@ export default function CheckpointItem({
                   );
                 });
               }}
-              className="rounded border border-neutral-300 px-2 py-1 text-sm"
+              className="field field-sm w-auto self-start"
             />
             {dateStatus && (
               <span
-                className={`text-xs ${dateStatus.kind === "error" ? "text-red-600" : "text-emerald-600"}`}
+                className={`inline-flex items-center gap-1 text-2xs ${
+                  dateStatus.kind === "error" ? "text-danger" : "text-ok"
+                }`}
               >
-                {dateStatus.kind === "error" ? "⚠ " : "✓ "}
+                {dateStatus.kind === "error" ? (
+                  <IconAlert className="h-3 w-3 shrink-0" />
+                ) : (
+                  <IconCheck className="h-3 w-3 shrink-0" />
+                )}
                 {dateStatus.text}
               </span>
             )}
           </label>
 
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-neutral-600">{COPY.fields.result.label}</span>
+            <span className="micro">{COPY.fields.result.label}</span>
             <CheckpointResultForm
               checkpointId={id}
               overdue={overdue}

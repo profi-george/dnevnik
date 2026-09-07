@@ -1,6 +1,7 @@
 "use client";
 
 import { COPY } from "@/lib/microcopy";
+import { IconTrash } from "@/components/icons";
 
 type Props = {
   projectName: string;
@@ -12,15 +13,16 @@ export default function DeleteProjectButton({ projectName, actionsCount }: Props
     <button
       type="submit"
       title={COPY.tooltips.deleteProject}
+      aria-label={COPY.cta.deleteProject}
       onClick={(e) => {
         const confirmed = window.confirm(
           `${COPY.success.confirmDeleteProjectTitle(projectName)}\n\n${COPY.success.confirmDeleteProjectBody(actionsCount)}`,
         );
         if (!confirmed) e.preventDefault();
       }}
-      className="text-xs text-red-500 hover:text-red-700"
+      className="btn-icon btn-icon-danger opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
     >
-      {COPY.cta.deleteProject}
+      <IconTrash className="h-3.5 w-3.5" />
     </button>
   );
 }

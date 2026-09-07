@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { createAction, createProjectAndReturn, getPlacesForProject } from "@/app/actions";
 import { toDateInputValue } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
+import { IconAlert, IconPlus } from "@/components/icons";
 
 type Project = { id: string; name: string };
 
@@ -48,39 +49,34 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
     });
   }, [projectId]);
 
-  const label = "text-sm font-medium text-neutral-700";
-  const optional = "font-normal text-neutral-400";
-  const hint = "text-xs text-neutral-400";
-  const input = "rounded border border-neutral-300 px-3 py-2 text-sm";
+  const label = "text-13 font-medium text-fg";
+  const optional = "font-normal text-fg-subtle";
 
   return (
-    <form
-      action={createAction}
-      className="flex flex-col gap-4 rounded border border-neutral-200 bg-white p-5"
-    >
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold text-neutral-900">Записать правку</h2>
-        <p className={hint}>
+    <form action={createAction} className="card flex flex-col gap-4 p-5">
+      <div className="flex flex-col gap-1 border-b border-line-soft pb-4">
+        <h2 className="text-base font-semibold tracking-tight text-fg">Записать правку</h2>
+        <p className="hint">
           {noCheckpoints
             ? "Проверки не планируем — напоминаний не будет"
             : "Три проверки создадутся автоматически"}
         </p>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <span className={label}>{F.project.label}</span>
         <input type="hidden" name="projectId" value={projectId} required />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {projectList.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => setProjectId(p.id)}
               aria-pressed={projectId === p.id}
-              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              className={`cursor-pointer rounded-full border px-3 py-1.5 text-13 font-medium transition-colors ${
                 projectId === p.id
                   ? "border-ink-600 bg-ink-600 text-white"
-                  : "border-neutral-300 bg-white text-neutral-700 hover:border-ink-500 hover:text-ink-600"
+                  : "border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg"
               }`}
             >
               {p.name}
@@ -92,14 +88,15 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
             <button
               type="button"
               onClick={() => setAddingProject(true)}
-              className="self-start text-xs text-ink-600 hover:underline"
+              className="link inline-flex w-fit items-center gap-1 text-xs"
             >
-              + Новый проект
+              <IconPlus className="h-3 w-3" />
+              Новый проект
             </button>
-            <span className={hint}>{F.project.hint}</span>
+            <span className="hint">{F.project.hint}</span>
           </>
         ) : (
-          <div className="flex flex-col gap-1.5 rounded border border-neutral-200 bg-neutral-50 p-2.5">
+          <div className="panel flex flex-col gap-1.5 p-2.5">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -113,13 +110,9 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
                   }
                 }}
                 placeholder={F.projectName.placeholder}
-                className={`${input} flex-1 bg-white`}
+                className="field flex-1"
               />
-              <button
-                type="button"
-                onClick={createNewProject}
-                className="rounded bg-ink-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-ink-700"
-              >
+              <button type="button" onClick={createNewProject} className="btn btn-primary btn-sm">
                 Создать
               </button>
               <button
@@ -128,29 +121,34 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
                   setAddingProject(false);
                   setNewProjectError(null);
                 }}
-                className="text-xs text-neutral-500 hover:text-ink-600"
+                className="btn btn-ghost btn-sm"
               >
                 Отмена
               </button>
             </div>
-            {newProjectError && <p className="text-xs text-red-600">⚠ {newProjectError}</p>}
+            {newProjectError && (
+              <p className="inline-flex items-center gap-1 text-xs text-danger">
+                <IconAlert className="h-3 w-3 shrink-0" />
+                {newProjectError}
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5">
         <span className={label}>{F.date.label}</span>
         <input
           type="date"
           name="date"
           required
           defaultValue={toDateInputValue(new Date())}
-          className={input}
+          className="field w-auto self-start"
         />
-        <span className={hint}>{F.date.hint}</span>
+        <span className="hint">{F.date.hint}</span>
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5">
         <span className={label}>{F.place.label}</span>
         <input
           type="text"
@@ -158,31 +156,29 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
           required
           list="place-suggestions"
           placeholder={F.place.placeholder}
-          className={input}
+          className="field"
         />
         <datalist id="place-suggestions">
           {places.map((place) => (
             <option key={place} value={place} />
           ))}
         </datalist>
-        <span className={hint}>
-          {places.length === 0 ? COPY.empty.placeFirstTime : F.place.hint}
-        </span>
+        <span className="hint">{places.length === 0 ? COPY.empty.placeFirstTime : F.place.hint}</span>
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5">
         <span className={label}>{F.description.label}</span>
         <textarea
           name="description"
           required
           rows={3}
           placeholder={F.description.placeholder}
-          className={input}
+          className="field"
         />
-        <span className={hint}>{F.description.hint}</span>
+        <span className="hint">{F.description.hint}</span>
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5">
         <span className={label}>
           {F.justification.label} <span className={optional}>{F.justification.optional}</span>
         </span>
@@ -190,74 +186,67 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
           name="justification"
           rows={2}
           placeholder={F.justification.placeholder}
-          className={input}
+          className="field"
         />
-        <span className={hint}>{F.justification.hint}</span>
+        <span className="hint">{F.justification.hint}</span>
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5">
         <span className={label}>
           {F.reportUrl.label} <span className={optional}>{F.reportUrl.optional}</span>
         </span>
-        <input
-          type="url"
-          name="reportUrl"
-          placeholder={F.reportUrl.placeholder}
-          className={input}
-        />
-        <span className={hint}>{F.reportUrl.hint}</span>
+        <input type="url" name="reportUrl" placeholder={F.reportUrl.placeholder} className="field" />
+        <span className="hint">{F.reportUrl.hint}</span>
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5">
         <span className={label}>
           {F.note.label} <span className={optional}>{F.note.optional}</span>
         </span>
-        <textarea name="note" rows={2} placeholder={F.note.placeholder} className={input} />
-        <span className={hint}>{F.note.hint}</span>
+        <textarea name="note" rows={2} placeholder={F.note.placeholder} className="field" />
+        <span className="hint">{F.note.hint}</span>
       </label>
 
-      <div className="flex flex-col gap-1 rounded border border-neutral-200 bg-neutral-50 p-3">
-        <label className="flex items-center gap-2">
+      <div className="panel flex flex-col gap-1 p-3">
+        <label className="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             name="noCheckpoints"
             value="1"
             checked={noCheckpoints}
             onChange={(e) => setNoCheckpoints(e.target.checked)}
-            className="h-4 w-4 rounded border-neutral-300"
+            className="h-3.5 w-3.5 rounded accent-ink-600"
           />
-          <span className="text-sm text-neutral-700">{F.noCheckpoints.label}</span>
+          <span className="text-13 text-fg">{F.noCheckpoints.label}</span>
         </label>
-        <span className={`${hint} pl-6`}>{F.noCheckpoints.hint}</span>
+        <span className="hint pl-5.5">{F.noCheckpoints.hint}</span>
       </div>
 
       {!noCheckpoints && (
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-1.5">
           <span className={label}>
             {F.customCheckDate.label} <span className={optional}>{F.customCheckDate.optional}</span>
           </span>
-          <input type="date" name="customCheckDate" className={input} />
-          <span className={hint}>{F.customCheckDate.hint}</span>
+          <input type="date" name="customCheckDate" className="field w-auto self-start" />
+          <span className="hint">{F.customCheckDate.hint}</span>
         </label>
       )}
 
-      <div className="flex items-center gap-4 border-t border-neutral-100 pt-4">
-        <button
-          type="submit"
-          className="rounded bg-ink-600 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700"
-        >
-          {noCheckpoints ? COPY.cta.createActionNoCheckpoints : COPY.cta.createAction}
-        </button>
-        <a href="/diary" className="text-sm text-neutral-500 hover:text-ink-600">
-          {COPY.cta.dontSave}
-        </a>
+      <div className="flex flex-col gap-2 border-t border-line-soft pt-4">
+        <div className="flex items-center gap-3">
+          <button type="submit" className="btn btn-primary">
+            {noCheckpoints ? COPY.cta.createActionNoCheckpoints : COPY.cta.createAction}
+          </button>
+          <a href="/diary" className="btn btn-ghost">
+            {COPY.cta.dontSave}
+          </a>
+        </div>
+        <p className="hint" title={COPY.tooltips.checkpoints}>
+          {noCheckpoints
+            ? "Правка попадёт в дневник без проверок — вернуться к ней можно вручную."
+            : "Проверим через сутки, через неделю и через месяц после даты правки."}
+        </p>
       </div>
-
-      <p className={hint} title={COPY.tooltips.checkpoints}>
-        {noCheckpoints
-          ? "Правка попадёт в дневник без проверок — вернуться к ней можно вручную."
-          : "Проверим через сутки, через неделю и через месяц после даты правки."}
-      </p>
     </form>
   );
 }

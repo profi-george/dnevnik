@@ -4,6 +4,7 @@ import { formatDateRu, startOfToday } from "@/lib/dates";
 import { CHECKPOINT_TYPE_LABEL } from "@/lib/labels";
 import { COPY, dayWord } from "@/lib/microcopy";
 import CheckpointResultForm from "@/components/CheckpointResultForm";
+import { IconArrowLeft, IconExternal } from "@/components/icons";
 
 type Props = {
   searchParams: Promise<{ projectId?: string }>;
@@ -27,108 +28,115 @@ export default async function TodayPage({ searchParams }: Props) {
   const totalActions = await prisma.action.count();
   const empty = totalActions === 0 ? COPY.empty.todayNothing : COPY.empty.todayAllDone;
   const emptyHref = totalActions === 0 ? "/diary/add" : "/diary";
+  const overdueCount = checkpoints.filter((cp) => new Date(cp.plannedDate) < startOfToday()).length;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <h1 className="text-xl font-semibold text-ink-700">{COPY.nav.today}</h1>
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div className="flex items-baseline gap-2.5">
+          <h1 className="text-lg font-semibold tracking-tight text-fg">{COPY.nav.today}</h1>
+          <span className="text-13 tabular-nums text-fg-subtle">
+            {checkpoints.length} в работе
+            {overdueCount > 0 && (
+              <span className="text-danger"> · {overdueCount} просрочено</span>
+            )}
+          </span>
+        </div>
+        <Link href="/diary" className="link inline-flex items-center gap-1.5 text-13">
+          <IconArrowLeft className="h-3.5 w-3.5" />
+          К дневнику
+        </Link>
+      </div>
 
-      <form className="flex items-end gap-3 rounded border border-neutral-200 bg-white p-3 text-sm">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-500">{COPY.fields.filterProject.label}</span>
-          <select
-            name="projectId"
-            defaultValue={projectId ?? ""}
-            className="rounded border border-neutral-300 px-2 py-1"
-          >
-            <option value="">{COPY.fields.filterProject.placeholder}</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="rounded border border-neutral-300 px-3 py-1.5 text-neutral-700 hover:bg-neutral-100"
+      <form className="card flex flex-wrap items-center gap-1.5 p-1.5">
+        <select
+          name="projectId"
+          defaultValue={projectId ?? ""}
+          aria-label={COPY.fields.filterProject.label}
+          className="field w-auto"
         >
+          <option value="">{COPY.fields.filterProject.placeholder}</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="btn btn-secondary">
           {COPY.cta.applyFilters}
         </button>
       </form>
 
-      <ul className="flex flex-col gap-3">
-        {checkpoints.map((cp) => {
-          const planned = new Date(cp.plannedDate);
-          const isOverdue = planned < startOfToday();
-          const overdueDays = isOverdue
-            ? Math.round((startOfToday().getTime() - planned.getTime()) / 86400000)
-            : 0;
+      {checkpoints.length > 0 ? (
+        <ul className="card divide-y divide-line-soft">
+          {checkpoints.map((cp) => {
+            const planned = new Date(cp.plannedDate);
+            const isOverdue = planned < startOfToday();
+            const overdueDays = isOverdue
+              ? Math.round((startOfToday().getTime() - planned.getTime()) / 86400000)
+              : 0;
 
-          return (
-            <li key={cp.id} className="rounded border border-neutral-200 bg-white p-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div className="flex flex-wrap items-baseline gap-2 text-sm">
-                  <span
-                    title={isOverdue ? COPY.tooltips.overdue : COPY.tooltips.checkpoints}
-                    className={`rounded border px-2 py-0.5 text-xs ${
-                      isOverdue
-                        ? "border-red-200 bg-red-50 text-red-700"
-                        : "border-amber-200 bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {isOverdue
-                      ? `Просрочено на ${overdueDays} ${dayWord(overdueDays)} · план ${formatDateRu(cp.plannedDate)}`
-                      : `Проверка ${CHECKPOINT_TYPE_LABEL[cp.type]} · план ${formatDateRu(cp.plannedDate)}`}
-                  </span>
-                  <span className="font-medium text-neutral-800">{cp.action.project.name}</span>
-                  <span className="text-neutral-400">· {cp.action.place}</span>
+            return (
+              <li key={cp.id} className="flex flex-col gap-2 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span
+                      title={isOverdue ? COPY.tooltips.overdue : COPY.tooltips.checkpoints}
+                      className={`chip ${
+                        isOverdue
+                          ? "border-danger-border bg-danger-soft text-danger"
+                          : "border-warn-border bg-warn-soft text-warn"
+                      }`}
+                    >
+                      <span className="dot" aria-hidden />
+                      {isOverdue
+                        ? `Просрочено на ${overdueDays} ${dayWord(overdueDays)}`
+                        : `Проверка ${CHECKPOINT_TYPE_LABEL[cp.type]}`}
+                      <span className="opacity-45">·</span>
+                      <span className="tabular-nums">план {formatDateRu(cp.plannedDate)}</span>
+                    </span>
+                    <span className="truncate text-13 font-semibold text-fg">
+                      {cp.action.project.name}
+                    </span>
+                    <span className="truncate text-13 text-fg-subtle">{cp.action.place}</span>
+                  </div>
+                  {cp.action.reportUrl && (
+                    <a
+                      href={cp.action.reportUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={COPY.tooltips.reportUrl}
+                      className="link inline-flex shrink-0 items-center gap-1.5 text-13"
+                    >
+                      <IconExternal className="h-3.5 w-3.5" />
+                      {COPY.cta.openReport}
+                    </a>
+                  )}
                 </div>
-                {cp.action.reportUrl && (
-                  <a
-                    href={cp.action.reportUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={COPY.tooltips.reportUrl}
-                    className="text-xs text-ink-600 hover:underline"
-                  >
-                    {COPY.cta.openReport} →
-                  </a>
-                )}
-              </div>
 
-              <p className="mt-2 text-sm text-neutral-700">{cp.action.description}</p>
-              {cp.action.justification && (
-                <p className="mt-1 text-xs text-neutral-400">
-                  Почему так решили: {cp.action.justification}
-                </p>
-              )}
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-13 text-fg">{cp.action.description}</p>
+                  {cp.action.justification && (
+                    <p className="hint">Почему так решили: {cp.action.justification}</p>
+                  )}
+                </div>
 
-              <div className="mt-3">
                 <CheckpointResultForm checkpointId={cp.id} overdue={isOverdue} defaultResult="" />
-              </div>
-            </li>
-          );
-        })}
-
-        {checkpoints.length === 0 && (
-          <li className="rounded border border-dashed border-neutral-300 bg-white px-6 py-10">
-            <div className="mx-auto flex max-w-md flex-col items-center gap-2 text-center">
-              <p className="text-base font-medium text-neutral-800">{empty.title}</p>
-              <p className="text-sm leading-relaxed text-neutral-500">{empty.body}</p>
-              <Link
-                href={emptyHref}
-                className="mt-2 rounded border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-              >
-                {empty.cta}
-              </Link>
-            </div>
-          </li>
-        )}
-      </ul>
-
-      <Link href="/diary" className="text-sm text-ink-600 hover:underline">
-        {COPY.cta.backToDiary}
-      </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="card px-6 py-14">
+          <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
+            <p className="text-base font-medium text-fg">{empty.title}</p>
+            <p className="text-13 leading-relaxed text-fg-muted">{empty.body}</p>
+            <Link href={emptyHref} className="btn btn-secondary mt-2">
+              {empty.cta}
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

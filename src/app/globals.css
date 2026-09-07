@@ -1,18 +1,458 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Дизайн-токены «Дневника ведения».
+   Инструмент, а не лендинг: холодная нейтральная шкала, один акцент (ink),
+   три статусных цвета, плотная типографика с табличными цифрами.
+   Единственное место, где живут цвета — здесь. В компонентах только токены.
+   ========================================================================== */
+
 @theme {
-  --color-ink-50: oklch(0.97 0.012 291.3);
-  --color-ink-500: oklch(0.48 0.238 274.8);
-  --color-ink-600: oklch(0.413 0.24 270.8);
-  --color-ink-700: oklch(0.361 0.207 271.3);
+  /* ——— Поверхности ——— */
+  --color-canvas: oklch(0.985 0.002 264); /* фон страницы */
+  --color-surface: oklch(1 0 0); /* карточки, таблица, поля ввода */
+  --color-subtle: oklch(0.971 0.003 264); /* шапка таблицы, служебные зоны */
+  --color-hover: oklch(0.968 0.004 264); /* заливка при наведении */
+  --color-hover-soft: oklch(0.981 0.003 264); /* подсветка строки таблицы */
+
+  /* ——— Линии ——— */
+  --color-line: oklch(0.912 0.005 264); /* внешние границы */
+  --color-line-soft: oklch(0.945 0.004 264); /* разделители строк */
+  --color-line-strong: oklch(0.86 0.007 264); /* границы при наведении */
+
+  /* ——— Текст ——— */
+  /* Все три ступени проходят контраст 4.5:1 на фоне canvas — подсказки читаемы */
+  --color-fg: oklch(0.255 0.012 264); /* основной, 15.5:1 */
+  --color-fg-muted: oklch(0.46 0.012 264); /* вторичный, 6.7:1 */
+  --color-fg-subtle: oklch(0.55 0.012 264); /* мета, плейсхолдеры, 4.5:1 */
+
+  /* ——— Акцент ——— */
+  --color-ink-50: oklch(0.968 0.014 274);
+  --color-ink-100: oklch(0.925 0.035 274);
+  --color-ink-200: oklch(0.865 0.06 274);
+  --color-ink-500: oklch(0.52 0.19 273);
+  --color-ink-600: oklch(0.455 0.196 272);
+  --color-ink-700: oklch(0.395 0.17 272);
+
+  /* ——— Статусы: снято / ждёт / просрочено ——— */
+  --color-ok: oklch(0.45 0.115 158);
+  --color-ok-soft: oklch(0.966 0.028 158);
+  --color-ok-border: oklch(0.885 0.06 158);
+
+  --color-warn: oklch(0.47 0.105 72);
+  --color-warn-soft: oklch(0.968 0.038 78);
+  --color-warn-border: oklch(0.885 0.075 78);
+
+  --color-danger: oklch(0.487 0.19 27);
+  --color-danger-soft: oklch(0.966 0.022 27);
+  --color-danger-border: oklch(0.885 0.06 27);
+
+  /* ——— Шрифт ———
+     Inter подключён через next/font в src/app/layout.tsx (латиница + кириллица) */
+  --font-sans:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial,
+    sans-serif;
+
+  /* ——— Шкала кеглей: пять ступеней, не больше ———
+     11 → микро-метки, 12 → мета, 13 → таблица, 14 → формы, 18/20 → заголовки */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-13: 0.8125rem;
+  --text-13--line-height: 1.15rem;
+
+  --shadow-card: 0 1px 2px oklch(0.25 0.02 264 / 0.05);
+  --shadow-pop: 0 4px 16px -4px oklch(0.25 0.02 264 / 0.14);
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+@layer base {
+  :root {
+    /* Высота шапки — от неё липнет шапка таблицы */
+    --header-h: 3.25rem;
+  }
+
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-fg);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Цифры дат и счётчиков не должны «прыгать» при обновлении */
+  input,
+  select,
+  textarea,
+  table,
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink-500);
+    outline-offset: 1px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: var(--color-ink-100);
+  }
+
+  /* Аккуратный скроллбар вместо системного «жирного» */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-ink-500);
-  outline-offset: 1px;
-  border-radius: 2px;
+@layer components {
+  /* ——— Поля ввода ——————————————————————————————————————————————— */
+  .field {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: 0.375rem 0.625rem;
+    font-size: var(--text-13);
+    line-height: 1.35rem;
+    color: var(--color-fg);
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  .field::placeholder {
+    color: var(--color-fg-subtle);
+  }
+
+  .field:hover:not(:disabled) {
+    border-color: var(--color-line-strong);
+  }
+
+  .field:focus-visible,
+  .field:focus {
+    outline: none;
+    border-color: var(--color-ink-500);
+    box-shadow: 0 0 0 3px var(--color-ink-100);
+  }
+
+  .field:disabled {
+    background: var(--color-subtle);
+    color: var(--color-fg-subtle);
+    cursor: not-allowed;
+  }
+
+  .field-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--text-2xs);
+    line-height: 1.15rem;
+  }
+
+  /* Многострочные поля форм чуть просторнее — их читают, а не сканируют */
+  textarea.field {
+    line-height: 1.5;
+  }
+
+  /* ——— Кнопки ——————————————————————————————————————————————————— */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 0.4375rem 0.75rem;
+    font-size: var(--text-13);
+    font-weight: 500;
+    line-height: 1.15rem;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--color-ink-600);
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-ink-700);
+  }
+
+  .btn-secondary {
+    background: var(--color-surface);
+    border-color: var(--color-line);
+    color: var(--color-fg);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--color-hover);
+    border-color: var(--color-line-strong);
+  }
+
+  .btn-ghost {
+    color: var(--color-fg-muted);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-hover);
+    color: var(--color-fg);
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--text-2xs);
+    gap: 0.25rem;
+  }
+
+  /* Иконочная кнопка «убрать/удалить» — тихая, краснеет только под курсором */
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: var(--radius-sm);
+    color: var(--color-fg-subtle);
+    cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .btn-icon:hover:not(:disabled) {
+    background: var(--color-hover);
+    color: var(--color-fg);
+  }
+
+  .btn-icon-danger:hover:not(:disabled) {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+  }
+
+  /* ——— Текстовые связки ————————————————————————————————————————— */
+  .link {
+    color: var(--color-ink-600);
+    cursor: pointer;
+    transition: color 120ms ease;
+  }
+
+  .link:hover {
+    color: var(--color-ink-700);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .micro {
+    font-size: var(--text-2xs);
+    line-height: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+    color: var(--color-fg-subtle);
+  }
+
+  .hint {
+    font-size: 0.75rem;
+    line-height: 1.05rem;
+    color: var(--color-fg-subtle);
+  }
+
+  /* ——— Контейнеры ——————————————————————————————————————————————— */
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+
+  .panel {
+    background: var(--color-subtle);
+    border: 1px solid var(--color-line-soft);
+    border-radius: var(--radius-md);
+  }
+
+  /* ——— Чипы ———————————————————————————————————————————————————— */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface);
+    padding: 0.1875rem 0.5rem 0.1875rem 0.625rem;
+    font-size: var(--text-2xs);
+    line-height: 1rem;
+    color: var(--color-fg-muted);
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  a.chip:hover {
+    background: var(--color-hover);
+    border-color: var(--color-line-strong);
+    color: var(--color-fg);
+  }
+
+  /* Статусная точка внутри чипа проверки */
+  .dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 999px;
+    flex: none;
+    background: currentColor;
+  }
+
+  /* ——— Таблица дневника ————————————————————————————————————————— */
+  .tbl {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .tbl thead th {
+    background: var(--color-subtle);
+    border-bottom: 1px solid var(--color-line);
+    padding: 0.5rem 0.5rem;
+    text-align: left;
+    font-size: var(--text-2xs);
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+  }
+
+  /* Шапка липнет только там, где обёртка таблицы не является скролл-контейнером
+     (на узких экранах включается горизонтальная прокрутка — липкость там ломается). */
+  @media (min-width: 80rem) {
+    .tbl thead th {
+      position: sticky;
+      top: var(--header-h);
+      z-index: 1;
+    }
+  }
+
+  .tbl thead th:first-child {
+    border-top-left-radius: calc(var(--radius-lg) - 1px);
+    padding-left: 0.75rem;
+  }
+
+  .tbl thead th:last-child {
+    border-top-right-radius: calc(var(--radius-lg) - 1px);
+  }
+
+  .tbl tbody td {
+    border-bottom: 1px solid var(--color-line-soft);
+    padding: 0.3125rem 0.25rem;
+    vertical-align: top;
+  }
+
+  .tbl tbody td:first-child {
+    padding-left: 0.5rem;
+  }
+
+  .tbl tbody td:last-child {
+    padding-right: 0.5rem;
+  }
+
+  .tbl tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .tbl tbody tr:last-child td:first-child {
+    border-bottom-left-radius: calc(var(--radius-lg) - 1px);
+  }
+
+  .tbl tbody tr:last-child td:last-child {
+    border-bottom-right-radius: calc(var(--radius-lg) - 1px);
+  }
+
+  .tbl tbody tr:hover td {
+    background: var(--color-hover-soft);
+  }
+
+  /* ——— Инлайн-редактирование ячеек ——————————————————————————————— */
+  .cell {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.1875rem 0.375rem;
+    font-size: var(--text-13);
+    line-height: 1.15rem;
+    color: var(--color-fg);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    cursor: text;
+    transition:
+      background-color 100ms ease,
+      border-color 100ms ease;
+  }
+
+  .cell:hover {
+    background: var(--color-surface);
+    border-color: var(--color-line-strong);
+  }
+
+  .cell-muted {
+    color: var(--color-fg-muted);
+  }
+
+  .cell-empty {
+    color: var(--color-fg-subtle);
+  }
+
+  .cell-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--color-ink-500);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    padding: 0.1875rem 0.375rem;
+    font-size: var(--text-13);
+    line-height: 1.15rem;
+    color: var(--color-fg);
+    box-shadow: 0 0 0 3px var(--color-ink-100);
+  }
+
+  .cell-input:focus-visible {
+    outline: none;
+  }
+
+  /* ——— Мини-статус «Сохранено / Ошибка» под ячейкой ————————————— */
+  .cell-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-left: 0.375rem;
+    font-size: var(--text-2xs);
+    line-height: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

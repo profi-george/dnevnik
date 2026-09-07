@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { createProject, deleteProject, renameProject } from "@/app/actions";
 import { COPY, actionWord } from "@/lib/microcopy";
 import DeleteProjectButton from "@/components/DeleteProjectButton";
+import { IconPlus } from "@/components/icons";
 
 export default async function ProjectsPage() {
   const projects = await prisma.project.findMany({
@@ -10,8 +11,11 @@ export default async function ProjectsPage() {
   });
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-xl font-semibold text-ink-700">{COPY.nav.projects}</h1>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <div className="flex items-baseline gap-2.5">
+        <h1 className="text-lg font-semibold tracking-tight text-fg">{COPY.nav.projects}</h1>
+        <span className="text-13 tabular-nums text-fg-subtle">{projects.length}</span>
+      </div>
 
       <form action={createProject} className="flex flex-col gap-1.5">
         <div className="flex gap-2">
@@ -21,50 +25,52 @@ export default async function ProjectsPage() {
             required
             aria-label={COPY.fields.projectName.label}
             placeholder={COPY.fields.projectName.placeholder}
-            className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
+            className="field flex-1"
           />
-          <button
-            type="submit"
-            className="rounded bg-ink-600 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700"
-          >
+          <button type="submit" className="btn btn-primary shrink-0">
+            <IconPlus className="h-3.5 w-3.5" />
             {COPY.cta.addProject}
           </button>
         </div>
-        <p className="text-xs text-neutral-400">{COPY.fields.projectName.hint}</p>
+        <p className="hint">{COPY.fields.projectName.hint}</p>
       </form>
 
-      <ul className="flex flex-col divide-y divide-neutral-200 rounded border border-neutral-200 bg-white">
+      <ul className="card divide-y divide-line-soft">
         {projects.map((project) => (
-          <li key={project.id} className="flex items-center gap-3 px-4 py-3">
-            <form action={renameProject} className="flex flex-1 items-center gap-2">
+          <li key={project.id} className="group flex items-center gap-2 px-2.5 py-2">
+            <form action={renameProject} className="flex min-w-0 flex-1 items-center gap-2">
               <input type="hidden" name="id" value={project.id} />
               <input
                 type="text"
                 name="name"
                 defaultValue={project.name}
                 aria-label={COPY.fields.projectName.label}
-                className="flex-1 rounded border border-transparent px-2 py-1 text-sm hover:border-neutral-300 focus:border-neutral-300"
+                className="field flex-1 border-transparent bg-transparent font-medium hover:border-line"
               />
-              <button type="submit" className="text-xs text-neutral-500 hover:text-ink-600">
+              <button
+                type="submit"
+                className="btn btn-ghost btn-sm opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+              >
                 {COPY.cta.saveName}
               </button>
             </form>
-            <span className="text-xs text-neutral-400">
+            <span className="shrink-0 text-2xs tabular-nums text-fg-subtle">
               {project._count.actions} {actionWord(project._count.actions)}
             </span>
-            <form action={deleteProject}>
+            <form action={deleteProject} className="shrink-0">
               <input type="hidden" name="id" value={project.id} />
-              <DeleteProjectButton projectName={project.name} actionsCount={project._count.actions} />
+              <DeleteProjectButton
+                projectName={project.name}
+                actionsCount={project._count.actions}
+              />
             </form>
           </li>
         ))}
         {projects.length === 0 && (
-          <li className="px-6 py-10">
-            <div className="mx-auto flex max-w-md flex-col items-center gap-1.5 text-center">
-              <p className="text-base font-medium text-neutral-800">
-                {COPY.empty.projectsEmpty.title}
-              </p>
-              <p className="text-sm leading-relaxed text-neutral-500">
+          <li className="px-6 py-12">
+            <div className="mx-auto flex max-w-sm flex-col items-center gap-1.5 text-center">
+              <p className="text-base font-medium text-fg">{COPY.empty.projectsEmpty.title}</p>
+              <p className="text-13 leading-relaxed text-fg-muted">
                 {COPY.empty.projectsEmpty.body}
               </p>
             </div>

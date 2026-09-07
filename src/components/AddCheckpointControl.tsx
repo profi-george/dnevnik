@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { addCheckpoint } from "@/app/actions";
 import { addDays, parseDateInput, toDateInputValue } from "@/lib/dates";
+import { IconAlert, IconPlus } from "@/components/icons";
 
 type CheckpointType = "DAY" | "WEEK" | "MONTH" | "CUSTOM";
 
@@ -51,22 +52,24 @@ export default function AddCheckpointControl({
 
   if (!open) {
     return (
+      // Проявляется при наведении на строку: в покое колонка проверок не зашумлена
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="self-start text-xs text-ink-600 hover:underline"
+        className="link inline-flex w-fit items-center gap-1 px-1 text-2xs opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
       >
-        + Добавить проверку
+        <IconPlus className="h-3 w-3" />
+        Добавить проверку
       </button>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1.5 rounded border border-neutral-200 bg-neutral-50 p-2">
+    <div className="panel flex flex-col gap-1.5 p-2">
       <select
         value={type}
         onChange={(e) => setType(e.target.value as CheckpointType)}
-        className="rounded border border-neutral-300 px-2 py-1 text-xs"
+        className="field field-sm"
       >
         {TYPE_OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
@@ -79,17 +82,17 @@ export default function AddCheckpointControl({
           type="date"
           value={customDate}
           onChange={(e) => setCustomDate(e.target.value)}
-          className="rounded border border-neutral-300 px-2 py-1 text-xs"
+          className="field field-sm"
         />
       ) : (
-        <span className="text-xs text-neutral-400">План: {computedDate}</span>
+        <span className="text-2xs tabular-nums text-fg-subtle">План: {computedDate}</span>
       )}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={submit}
           disabled={isPending}
-          className="rounded bg-ink-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-ink-700 disabled:opacity-50"
+          className="btn btn-primary btn-sm"
         >
           Добавить
         </button>
@@ -99,12 +102,17 @@ export default function AddCheckpointControl({
             setOpen(false);
             setError(null);
           }}
-          className="text-xs text-neutral-500 hover:text-ink-600"
+          className="btn btn-ghost btn-sm"
         >
           Отмена
         </button>
       </div>
-      {error && <span className="text-xs text-red-600">⚠ {error}</span>}
+      {error && (
+        <span className="inline-flex items-center gap-1 text-2xs text-danger">
+          <IconAlert className="h-3 w-3 shrink-0" />
+          {error}
+        </span>
+      )}
     </div>
   );
 }

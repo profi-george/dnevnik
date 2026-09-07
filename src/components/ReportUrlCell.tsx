@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { updateActionField } from "@/app/actions";
 import { COPY } from "@/lib/microcopy";
+import { IconAlert, IconCheck, IconExternal, IconPencil, IconPlus } from "@/components/icons";
 
 type Status = { kind: "success" | "error"; text: string } | null;
 
@@ -48,50 +49,53 @@ export default function ReportUrlCell({ id, value }: { id: string; value: string
             setEditing(false);
           }
         }}
-        className="w-full min-w-[8rem] rounded border border-ink-500 bg-white px-1.5 py-1 text-sm"
+        className="cell-input"
       />
     );
   }
 
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1">
-        {value ? (
+      {value ? (
+        <div className="flex items-center gap-0.5">
           <a
             href={value}
             target="_blank"
             rel="noreferrer"
             title={COPY.tooltips.reportUrl}
-            className="truncate text-sm text-ink-600 hover:underline"
+            className="link inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-13"
           >
-            Открыть →
+            <IconExternal className="h-3 w-3" />
+            Отчёт
           </a>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            title={COPY.cta.addReportUrl}
-            className="rounded px-1.5 py-1 text-left text-sm text-neutral-300 hover:bg-neutral-100"
-          >
-            —
-          </button>
-        )}
-        {value && (
           <button
             type="button"
             onClick={() => setEditing(true)}
             title={COPY.cta.editReportUrl}
-            className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+            aria-label={COPY.cta.editReportUrl}
+            className="btn-icon h-5 w-5"
           >
-            ✎
+            <IconPencil className="h-3 w-3" />
           </button>
-        )}
-      </div>
-      {status && (
-        <span
-          className={`px-1.5 text-xs ${status.kind === "error" ? "text-red-600" : "text-emerald-600"}`}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          title={COPY.cta.addReportUrl}
+          aria-label={COPY.cta.addReportUrl}
+          className="btn-icon h-6 w-6"
         >
-          {status.kind === "error" ? "⚠ " : "✓ "}
+          <IconPlus className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {status && (
+        <span className={`cell-status ${status.kind === "error" ? "text-danger" : "text-ok"}`}>
+          {status.kind === "error" ? (
+            <IconAlert className="h-3 w-3 shrink-0" />
+          ) : (
+            <IconCheck className="h-3 w-3 shrink-0" />
+          )}
           {status.text}
         </span>
       )}

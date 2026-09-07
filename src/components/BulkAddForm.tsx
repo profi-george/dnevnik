@@ -5,23 +5,11 @@ import { useRouter } from "next/navigation";
 import { parseActionsWithAI, createActionsBulk } from "@/app/actions";
 import { toDateInputValue } from "@/lib/dates";
 import type { ParsedAction } from "@/lib/gemini";
+import { IconAlert, IconArrowLeft, IconPlus, IconSparkles, Spinner } from "@/components/icons";
 
 type Project = { id: string; name: string };
 
 const DEFAULT_PROJECT_NAME = "Gclinic";
-
-function Spinner() {
-  return (
-    <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
-  );
-}
 
 export default function BulkAddForm({ projects }: { projects: Project[] }) {
   const router = useRouter();
@@ -104,23 +92,28 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
     });
   }
 
-  const input = "rounded border border-neutral-300 px-3 py-2 text-sm";
+  const errorLine = error && (
+    <p className="inline-flex items-start gap-1.5 text-13 text-danger">
+      <IconAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      {error}
+    </p>
+  );
 
   if (step === "input") {
     return (
-      <div className="flex flex-col gap-4 rounded border border-neutral-200 bg-white p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold text-neutral-900">Разобрать через ИИ</h2>
-          <p className="text-xs text-neutral-400">
-            Вставьте кусок текста с описанием одной или нескольких правок — ИИ разложит его по
-            полям и предложит сократить так же, как в вашей практике. Перед сохранением всё
-            можно поправить.
+      <div className="card flex flex-col gap-4 p-5">
+        <div className="flex flex-col gap-1 border-b border-line-soft pb-4">
+          <h2 className="text-base font-semibold tracking-tight text-fg">Разобрать через ИИ</h2>
+          <p className="hint">
+            Вставьте кусок текста с описанием одной или нескольких правок — ИИ разложит его по полям
+            и предложит сократить так же, как в вашей практике. Перед сохранением всё можно
+            поправить.
           </p>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-neutral-700">Проект</span>
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-13 font-medium text-fg">Проект</span>
+          <div className="flex flex-wrap gap-1.5">
             {projects.map((p) => (
               <button
                 key={p.id}
@@ -128,10 +121,10 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
                 disabled={parsing}
                 onClick={() => setProjectId(p.id)}
                 aria-pressed={projectId === p.id}
-                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${
+                className={`cursor-pointer rounded-full border px-3 py-1.5 text-13 font-medium transition-colors disabled:opacity-50 ${
                   projectId === p.id
                     ? "border-ink-600 bg-ink-600 text-white"
-                    : "border-neutral-300 bg-white text-neutral-700 hover:border-ink-500 hover:text-ink-600"
+                    : "border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg"
                 }`}
               >
                 {p.name}
@@ -140,58 +133,58 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
           </div>
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-neutral-700">Дата действия</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-13 font-medium text-fg">Дата действия</span>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             disabled={parsing}
-            className={`${input} disabled:bg-neutral-100`}
+            className="field w-auto self-start"
           />
-          <span className="text-xs text-neutral-400">Общая для всех правок из этого текста</span>
+          <span className="hint">Общая для всех правок из этого текста</span>
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-neutral-700">Текст</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-13 font-medium text-fg">Текст</span>
           <textarea
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
             rows={10}
             disabled={parsing}
             placeholder="Вставьте заметку, переписку или черновик со списком правок…"
-            className={`${input} disabled:bg-neutral-100`}
+            className="field"
           />
         </label>
 
         {parsing && (
-          <div className="flex items-center gap-3 rounded border border-ink-500/30 bg-ink-50 px-3 py-2.5">
-            <Spinner />
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-ink-700">
+          <div className="flex items-start gap-3 rounded-md border border-ink-200 bg-ink-50 px-3 py-2.5">
+            <Spinner className="mt-0.5 h-4 w-4 text-ink-600" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-13 font-medium tabular-nums text-ink-700">
                 Идёт разбор через Gemini… {elapsed} сек
               </span>
-              <span className="text-xs text-neutral-500">
-                Страница не зависла — иногда занимает до минуты, особенно если Google
-                перегружен. Не закрывайте вкладку.
+              <span className="hint">
+                Страница не зависла — иногда занимает до минуты, особенно если Google перегружен. Не
+                закрывайте вкладку.
               </span>
             </div>
           </div>
         )}
 
-        {error && <p className="text-sm text-red-600">⚠ {error}</p>}
+        {errorLine}
 
-        <div className="flex items-center gap-4 border-t border-neutral-100 pt-4">
+        <div className="flex items-center gap-3 border-t border-line-soft pt-4">
           <button
             type="button"
             onClick={parse}
             disabled={isPending || !rawText.trim() || !projectId}
-            className="flex items-center gap-2 rounded bg-ink-600 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700 disabled:opacity-50"
+            className="btn btn-primary"
           >
-            {isPending && <Spinner />}
+            {isPending ? <Spinner className="h-3.5 w-3.5" /> : <IconSparkles className="h-3.5 w-3.5" />}
             {isPending ? "Разбираю…" : "Разобрать через ИИ"}
           </button>
-          <a href="/diary" className="text-sm text-neutral-500 hover:text-ink-600">
+          <a href="/diary" className="btn btn-ghost">
             Не сохранять
           </a>
         </div>
@@ -200,67 +193,65 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded border border-neutral-200 bg-white p-5">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold text-neutral-900">
+    <div className="card flex flex-col gap-4 p-5">
+      <div className="flex flex-col gap-1 border-b border-line-soft pb-4">
+        <h2 className="text-base font-semibold tracking-tight text-fg">
           Проверьте {rows.length} {rows.length === 1 ? "правку" : "правок"}
         </h2>
-        <p className="text-xs text-neutral-400">
+        <p className="hint">
           Проект «{projects.find((p) => p.id === projectId)?.name}», дата — общая для всех. Можно
           поправить любое поле или убрать лишнюю строку перед сохранением.
         </p>
       </div>
 
-      <details className="rounded border border-neutral-200 bg-neutral-50 p-3 text-sm">
-        <summary className="cursor-pointer text-xs font-medium text-neutral-500">
-          Исходный текст — сверить с результатом
-        </summary>
-        <p className="mt-2 whitespace-pre-wrap text-xs text-neutral-600">{rawText}</p>
+      <details className="panel p-2.5">
+        <summary className="micro cursor-pointer">Исходный текст — сверить с результатом</summary>
+        <p className="mt-2 text-xs leading-relaxed whitespace-pre-wrap text-fg-muted">{rawText}</p>
       </details>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
         {rows.map((row, i) => (
-          <div key={i} className="flex flex-col gap-2 rounded border border-neutral-200 p-3">
+          <div key={i} className="flex flex-col gap-2 rounded-md border border-line p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-neutral-400">#{i + 1}</span>
+              <span className="micro tabular-nums">№ {i + 1}</span>
               <button
                 type="button"
                 onClick={() => removeRow(i)}
-                className="text-xs text-red-500 hover:text-red-700"
+                className="text-xs text-fg-subtle transition-colors hover:text-danger"
               >
                 Убрать
               </button>
             </div>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-neutral-500">Где именно</span>
+              <span className="micro">Где именно</span>
               <input
                 value={row.place}
                 onChange={(e) => updateRow(i, "place", e.target.value)}
-                className={input}
+                className="field"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-neutral-500">Что изменили</span>
+              <span className="micro">Что изменили</span>
               <input
                 value={row.description}
                 onChange={(e) => updateRow(i, "description", e.target.value)}
-                className={input}
+                className="field"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-neutral-500">Почему так решили</span>
+              <span className="micro">Почему так решили</span>
               <input
                 value={row.justification}
                 onChange={(e) => updateRow(i, "justification", e.target.value)}
-                className={input}
+                className="field"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-neutral-500">Заметка</span>
+              <span className="micro">Заметка</span>
               <input
                 value={row.note}
                 onChange={(e) => updateRow(i, "note", e.target.value)}
-                className={input}
+                className="field"
               />
             </label>
           </div>
@@ -271,33 +262,35 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
         <button
           type="button"
           onClick={addBlankRow}
-          className="text-sm text-ink-600 hover:underline"
+          className="link inline-flex items-center gap-1.5 text-13"
         >
-          + Добавить строку вручную
+          <IconPlus className="h-3.5 w-3.5" />
+          Добавить строку вручную
         </button>
         <button
           type="button"
           onClick={() => setShowMoreInput((v) => !v)}
-          className="text-sm text-ink-600 hover:underline"
+          className="link inline-flex items-center gap-1.5 text-13"
         >
-          + Добавить ещё через ИИ
+          <IconSparkles className="h-3.5 w-3.5" />
+          Добавить ещё через ИИ
         </button>
       </div>
 
       {showMoreInput && (
-        <div className="flex flex-col gap-2 rounded border border-neutral-200 bg-neutral-50 p-3">
+        <div className="panel flex flex-col gap-2 p-3">
           <textarea
             value={moreText}
             onChange={(e) => setMoreText(e.target.value)}
             rows={5}
             disabled={parsing}
             placeholder="Вставьте ещё кусок текста — новые правки добавятся к уже разобранным…"
-            className={`${input} disabled:bg-neutral-100`}
+            className="field"
           />
           {parsing ? (
-            <div className="flex items-center gap-3 rounded border border-ink-500/30 bg-ink-50 px-3 py-2.5">
-              <Spinner />
-              <span className="text-sm font-medium text-ink-700">
+            <div className="flex items-center gap-2.5 rounded-md border border-ink-200 bg-ink-50 px-3 py-2">
+              <Spinner className="h-3.5 w-3.5 text-ink-600" />
+              <span className="text-13 font-medium tabular-nums text-ink-700">
                 Идёт разбор через Gemini… {elapsed} сек
               </span>
             </div>
@@ -307,7 +300,7 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
                 type="button"
                 onClick={parseMore}
                 disabled={isPending || !moreText.trim()}
-                className="flex items-center gap-2 rounded bg-ink-600 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700 disabled:opacity-50"
+                className="btn btn-primary"
               >
                 Разобрать и добавить
               </button>
@@ -317,7 +310,7 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
                   setShowMoreInput(false);
                   setMoreText("");
                 }}
-                className="text-sm text-neutral-500 hover:text-ink-600"
+                className="btn btn-ghost"
               >
                 Отмена
               </button>
@@ -326,23 +319,21 @@ export default function BulkAddForm({ projects }: { projects: Project[] }) {
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">⚠ {error}</p>}
+      {errorLine}
 
-      <div className="flex items-center gap-4 border-t border-neutral-100 pt-4">
+      <div className="flex items-center gap-3 border-t border-line-soft pt-4">
         <button
           type="button"
           onClick={save}
           disabled={isPending || rows.length === 0}
-          className="rounded bg-ink-600 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700 disabled:opacity-50"
+          className="btn btn-primary"
         >
+          {isPending && <Spinner className="h-3.5 w-3.5" />}
           {isPending ? "Сохраняю…" : `Сохранить всё (${rows.length})`}
         </button>
-        <button
-          type="button"
-          onClick={() => setStep("input")}
-          className="text-sm text-neutral-500 hover:text-ink-600"
-        >
-          ← Назад к тексту
+        <button type="button" onClick={() => setStep("input")} className="btn btn-ghost">
+          <IconArrowLeft className="h-3.5 w-3.5" />
+          Назад к тексту
         </button>
       </div>
     </div>

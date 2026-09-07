@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { updateActionField, getPlacesForProject } from "@/app/actions";
+import { IconAlert, IconCheck } from "@/components/icons";
 
 type Field = "date" | "place" | "description" | "justification" | "note" | "reportUrl";
 
@@ -13,6 +14,8 @@ type Props = {
   type?: "text" | "date";
   placeholder?: string;
   autocompleteProjectId?: string;
+  /** «muted» — второстепенные колонки (почему, заметка): тише основного текста */
+  tone?: "default" | "muted";
 };
 
 type Status = { kind: "success" | "error"; text: string } | null;
@@ -25,6 +28,7 @@ export default function InlineField({
   type = "text",
   placeholder,
   autocompleteProjectId,
+  tone = "default",
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -100,7 +104,7 @@ export default function InlineField({
             }
             if (e.key === "Escape") cancel();
           }}
-          className="block w-full min-w-0 resize-none overflow-hidden rounded border border-ink-500 bg-white px-1.5 py-1 text-sm"
+          className="cell-input resize-none overflow-hidden"
         />
       );
     }
@@ -122,7 +126,7 @@ export default function InlineField({
             }
             if (e.key === "Escape") cancel();
           }}
-          className="w-full min-w-0 rounded border border-ink-500 bg-white px-1.5 py-1 text-sm"
+          className="cell-input"
         />
         {listId && (
           <datalist id={listId}>
@@ -140,17 +144,22 @@ export default function InlineField({
       <button
         type="button"
         onClick={startEdit}
-        className={`block w-full min-w-0 whitespace-pre-wrap break-words rounded px-1.5 py-1 text-left text-sm underline decoration-dotted decoration-neutral-300 underline-offset-4 hover:bg-neutral-100 hover:decoration-ink-500 ${
-          value ? "text-neutral-800" : "text-neutral-300"
+        title="Клик — редактировать"
+        className={`cell ${type === "date" ? "whitespace-nowrap" : ""} ${
+          value ? (tone === "muted" ? "cell-muted" : "") : "cell-empty"
         }`}
       >
         {displayValue ?? (value || placeholder || "—")}
       </button>
       {status && (
         <span
-          className={`px-1.5 text-xs ${status.kind === "error" ? "text-red-600" : "text-emerald-600"}`}
+          className={`cell-status ${status.kind === "error" ? "text-danger" : "text-ok"}`}
         >
-          {status.kind === "error" ? "⚠ " : "✓ "}
+          {status.kind === "error" ? (
+            <IconAlert className="h-3 w-3 shrink-0" />
+          ) : (
+            <IconCheck className="h-3 w-3 shrink-0" />
+          )}
           {status.text}
         </span>
       )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { updateActionField } from "@/app/actions";
+import { IconAlert, IconCheck } from "@/components/icons";
 
 type Project = { id: string; name: string };
 
@@ -45,7 +46,7 @@ export default function ProjectCell({ id, projectId, projectName, projects }: Pr
           }
         }}
         onBlur={() => setEditing(false)}
-        className="w-full min-w-0 rounded border border-ink-500 bg-white px-1.5 py-1 text-sm"
+        className="cell-input"
       >
         {projects.map((p) => (
           <option key={p.id} value={p.id}>
@@ -58,18 +59,22 @@ export default function ProjectCell({ id, projectId, projectName, projects }: Pr
 
   return (
     <div className="flex flex-col gap-0.5">
+      {/* Проект — якорь строки: чуть плотнее по весу, чтобы взгляд цеплялся при сортировке по проекту */}
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="block w-full min-w-0 whitespace-pre-wrap break-words rounded px-1.5 py-1 text-left text-sm text-neutral-500 underline decoration-dotted decoration-neutral-300 underline-offset-4 hover:bg-neutral-100 hover:decoration-ink-500"
+        title="Клик — сменить проект"
+        className="cell cell-muted font-medium"
       >
         {projectName}
       </button>
       {status && (
-        <span
-          className={`px-1.5 text-xs ${status.kind === "error" ? "text-red-600" : "text-emerald-600"}`}
-        >
-          {status.kind === "error" ? "⚠ " : "✓ "}
+        <span className={`cell-status ${status.kind === "error" ? "text-danger" : "text-ok"}`}>
+          {status.kind === "error" ? (
+            <IconAlert className="h-3 w-3 shrink-0" />
+          ) : (
+            <IconCheck className="h-3 w-3 shrink-0" />
+          )}
           {status.text}
         </span>
       )}
