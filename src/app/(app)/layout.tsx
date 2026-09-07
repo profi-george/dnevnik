@@ -44,21 +44,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               ))}
             </nav>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/diary/add"
-              className="rounded bg-ink-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-700"
-            >
-              {COPY.cta.addActionShort}
-            </Link>
-            <Link
-              href="/diary/bulk"
-              title="Вставить текст — ИИ сам разберёт его на несколько записей"
-              className="rounded border border-ink-500/40 px-3 py-1.5 text-sm font-medium text-ink-600 hover:bg-ink-50"
-            >
-              {COPY.cta.addActionAiShort}
-            </Link>
-          </div>
+          <Link
+            href="/diary/bulk"
+            className="rounded bg-ink-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-700"
+          >
+            {COPY.cta.addActionShort}
+          </Link>
         </div>
       </header>
       <main className="w-full flex-1 px-6 py-6">{children}</main>
