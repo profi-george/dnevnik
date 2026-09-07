@@ -211,7 +211,7 @@ export const COPY = {
     saveResult: "Сохранить результат",
     saveResultOverdue: "Снять с опозданием",
     openReport: "Открыть отчёт в Директе",
-    applyFilters: "Показать эти правки",
+    applyFilters: "Применить",
     clearFilters: "Снять фильтры",
     saveName: "Сохранить название",
     deleteProject: "Удалить проект",
