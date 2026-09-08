@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { actionWord } from "@/lib/microcopy";
 import { IconArrowLeft, IconArrowRight } from "@/components/icons";
+import ProjectNameField from "@/components/ProjectNameField";
 import ProjectInfoForm from "@/components/ProjectInfoForm";
 import ProjectTextSection from "@/components/ProjectTextSection";
 import ProjectLinksEditor from "@/components/ProjectLinksEditor";
@@ -34,7 +35,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             <IconArrowLeft className="h-3.5 w-3.5" />
             К проектам
           </Link>
-          <h1 className="text-lg font-semibold tracking-tight text-fg">{project.name}</h1>
+          <ProjectNameField id={project.id} name={project.name} />
         </div>
         <Link
           href={`/diary?projectId=${project.id}`}

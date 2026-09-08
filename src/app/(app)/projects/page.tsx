@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { createProject, deleteProject, renameProject } from "@/app/actions";
+import { createProject, deleteProject } from "@/app/actions";
 import { COPY, actionWord } from "@/lib/microcopy";
 import DeleteProjectButton from "@/components/DeleteProjectButton";
 import { IconArrowRight, IconPlus } from "@/components/icons";
@@ -38,33 +38,16 @@ export default async function ProjectsPage() {
 
       <ul className="card divide-y divide-line-soft">
         {projects.map((project) => (
-          <li key={project.id} className="group flex items-center gap-2 px-2.5 py-2">
-            <form action={renameProject} className="flex min-w-0 flex-1 items-center gap-2">
-              <input type="hidden" name="id" value={project.id} />
-              <input
-                type="text"
-                name="name"
-                defaultValue={project.name}
-                aria-label={COPY.fields.projectName.label}
-                className="field flex-1 border-transparent bg-transparent font-medium hover:border-line"
-              />
-              <button
-                type="submit"
-                className="btn btn-ghost btn-sm opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-              >
-                {COPY.cta.saveName}
-              </button>
-            </form>
-            <span className="shrink-0 text-2xs tabular-nums text-fg-subtle">
-              {project._count.actions} {actionWord(project._count.actions)}
-            </span>
+          <li key={project.id} className="group flex items-center gap-2 px-2.5 py-1">
             <Link
               href={`/projects/${project.id}`}
-              title={COPY.cta.openProject}
-              aria-label={COPY.cta.openProject}
-              className="btn-icon shrink-0"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1.5 hover:bg-hover-soft"
             >
-              <IconArrowRight className="h-3.5 w-3.5" />
+              <span className="min-w-0 flex-1 truncate text-13 font-medium text-fg">{project.name}</span>
+              <span className="shrink-0 text-2xs tabular-nums text-fg-subtle">
+                {project._count.actions} {actionWord(project._count.actions)}
+              </span>
+              <IconArrowRight className="h-3.5 w-3.5 shrink-0 text-fg-subtle" />
             </Link>
             <form action={deleteProject} className="shrink-0">
               <input type="hidden" name="id" value={project.id} />

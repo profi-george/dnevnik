@@ -33,6 +33,7 @@ export async function renameProject(formData: FormData) {
   if (!id || !name) return;
   await prisma.project.update({ where: { id }, data: { name } });
   revalidatePath("/projects");
+  revalidatePath(`/projects/${id}`);
 }
 
 export async function deleteProject(formData: FormData) {
