@@ -59,19 +59,22 @@ const PROJECT_INFO_FIELDS = [
   "constraints",
   "directLogin",
 ] as const;
-export type ProjectInfoField = (typeof PROJECT_INFO_FIELDS)[number];
+type ProjectInfoField = (typeof PROJECT_INFO_FIELDS)[number];
 
-// Каждое поле вводных читается как обычный текст и правится по клику на карандашик —
-// сохраняется само, без общей кнопки «Сохранить».
-export async function updateProjectInfoField(
-  id: string,
-  field: ProjectInfoField,
-  value: string,
+// Вводные читаются как текст, редактируются все разом по одному карандашику —
+// сохраняется одной формой целиком.
+export async function updateProjectInfo(
+  formData: FormData,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!id || !PROJECT_INFO_FIELDS.includes(field)) {
-    return { ok: false, error: COPY.errors.cellSaveFailed };
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: COPY.errors.cellSaveFailed };
+
+  const data: Partial<Record<ProjectInfoField, string | null>> = {};
+  for (const field of PROJECT_INFO_FIELDS) {
+    data[field] = String(formData.get(field) ?? "").trim() || null;
   }
-  await prisma.project.update({ where: { id }, data: { [field]: value.trim() || null } });
+
+  await prisma.project.update({ where: { id }, data });
   revalidatePath(`/projects/${id}`);
   return { ok: true };
 }
