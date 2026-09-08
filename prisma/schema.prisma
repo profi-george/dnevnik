@@ -22,12 +22,59 @@ enum CheckpointStatus {
   DONE // снято
 }
 
+enum GoalLevel {
+  MACRO
+  MICRO
+}
+
 model Project {
   id        String   @id @default(cuid())
   name      String
   createdAt DateTime @default(now())
 
+  // ——— Вводные ———
+  topic               String? // Тематика
+  site                String? // Сайт
+  budget              String? // Бюджет
+  regions             String? // Регионы
+  priorities          String? // Приоритеты
+  businessGoals       String? // Бизнес-цели
+  qualifiedLeadParams String? // Параметры квал. лидов
+  clientWishes        String? // Пожелания клиента
+  constraints         String? // Ограничения
+  directLogin         String? // Логин в Директе
+
+  // ——— Свободные разделы (порядок пунктов — порядок строк в тексте) ———
+  history   String? // История крупными мазками: вехи, решения, тесты, результаты
+  problems  String? // Текущие нерешённые проблемы, в порядке приоритета
+  questions String? // Вопросы к анализу, на которые нет готового ответа
+
   actions Action[]
+  links   ProjectLink[]
+  goals   ProjectGoal[]
+}
+
+// Важные ссылки проекта — клиентский отчёт, визуализация и т.д.
+model ProjectLink {
+  id        String  @id @default(cuid())
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  label     String
+  url       String
+  order     Int     @default(0)
+}
+
+// Карта целей — таблица целей Метрики/Директа, на которые ориентируется проект.
+model ProjectGoal {
+  id             String    @id @default(cuid())
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String
+  goalId         String // ID цели в Метрике/Директе
+  name           String
+  level          GoalLevel
+  description    String?
+  validDatesNote String? // с какой даты можно доверять данным по цели
+  order          Int       @default(0)
 }
 
 model Action {

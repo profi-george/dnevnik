@@ -44,6 +44,126 @@ export async function deleteProject(formData: FormData) {
   revalidatePath("/today");
 }
 
+// ——— Карточка проекта: вводные, история, ссылки, карта целей ———
+
+const PROJECT_INFO_FIELDS = [
+  "topic",
+  "site",
+  "budget",
+  "regions",
+  "priorities",
+  "businessGoals",
+  "qualifiedLeadParams",
+  "clientWishes",
+  "constraints",
+  "directLogin",
+] as const;
+type ProjectInfoField = (typeof PROJECT_INFO_FIELDS)[number];
+
+// Вводные сохраняются одной формой целиком — заполняются один раз и редко правятся.
+export async function updateProjectInfo(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const data: Partial<Record<ProjectInfoField, string | null>> = {};
+  for (const field of PROJECT_INFO_FIELDS) {
+    data[field] = String(formData.get(field) ?? "").trim() || null;
+  }
+
+  await prisma.project.update({ where: { id }, data });
+  revalidatePath(`/projects/${id}`);
+}
+
+const PROJECT_TEXT_SECTIONS = ["history", "problems", "questions"] as const;
+type ProjectTextSection = (typeof PROJECT_TEXT_SECTIONS)[number];
+
+// История / Проблемы / Вопросы — три отдельных свободных раздела, каждый со своим
+// сохранением: их правят независимо и в разное время, не всей карточкой целиком.
+export async function updateProjectTextSection(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const field = String(formData.get("field") ?? "") as ProjectTextSection;
+  if (!id || !PROJECT_TEXT_SECTIONS.includes(field)) return;
+
+  const value = String(formData.get("value") ?? "").trim();
+  await prisma.project.update({ where: { id }, data: { [field]: value || null } });
+  revalidatePath(`/projects/${id}`);
+}
+
+// Важные ссылки проекта — клиентский отчёт, визуализация и т.д.
+export async function createProjectLink(formData: FormData) {
+  const projectId = String(formData.get("projectId") ?? "");
+  const label = String(formData.get("label") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim();
+  if (!projectId || !label || !url) return;
+
+  const count = await prisma.projectLink.count({ where: { projectId } });
+  await prisma.projectLink.create({ data: { projectId, label, url, order: count } });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function deleteProjectLink(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!id) return;
+  await prisma.projectLink.delete({ where: { id } });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+// Карта целей — таблица целей Метрики/Директа, на которые ориентируется проект.
+export async function createProjectGoal(formData: FormData) {
+  const projectId = String(formData.get("projectId") ?? "");
+  const goalId = String(formData.get("goalId") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const level = String(formData.get("level") ?? "MACRO") === "MICRO" ? "MICRO" : "MACRO";
+  if (!projectId || !goalId || !name) return;
+
+  const count = await prisma.projectGoal.count({ where: { projectId } });
+  await prisma.projectGoal.create({
+    data: { projectId, goalId, name, level, order: count },
+  });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+const GOAL_EDITABLE_FIELDS = ["goalId", "name", "level", "description", "validDatesNote"] as const;
+type GoalField = (typeof GOAL_EDITABLE_FIELDS)[number];
+const GOAL_REQUIRED_FIELDS = new Set<GoalField>(["goalId", "name"]);
+
+export async function updateProjectGoalField(
+  id: string,
+  projectId: string,
+  field: GoalField,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id || !GOAL_EDITABLE_FIELDS.includes(field)) {
+    return { ok: false, error: COPY.errors.cellSaveFailed };
+  }
+
+  const trimmed = value.trim();
+  if (GOAL_REQUIRED_FIELDS.has(field) && !trimmed) {
+    return { ok: false, error: field === "goalId" ? "ID цели обязателен." : "Название обязательно." };
+  }
+  if (field === "level" && trimmed !== "MACRO" && trimmed !== "MICRO") {
+    return { ok: false, error: COPY.errors.cellSaveFailed };
+  }
+
+  await prisma.projectGoal.update({
+    where: { id },
+    data: { [field]: GOAL_REQUIRED_FIELDS.has(field) || field === "level" ? trimmed : trimmed || null },
+  });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+export async function deleteProjectGoal(
+  id: string,
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id цели." };
+  await prisma.projectGoal.delete({ where: { id } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
 export async function getPlacesForProject(projectId: string): Promise<string[]> {
   if (!projectId) return [];
   const actions = await prisma.action.findMany({

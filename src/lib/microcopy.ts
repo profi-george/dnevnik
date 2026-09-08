@@ -152,6 +152,49 @@ export const COPY = {
     },
   },
 
+  // ——— 05б. Карточка проекта: вводные, свободные разделы, ссылки, цели ———
+  projectInfo: {
+    topic: { label: "Тематика" },
+    site: { label: "Сайт" },
+    budget: { label: "Бюджет" },
+    regions: { label: "Регионы" },
+    priorities: { label: "Приоритеты" },
+    businessGoals: { label: "Бизнес-цели" },
+    qualifiedLeadParams: {
+      label: "Параметры квал. лидов",
+      hint: "Что считается квалифицированным лидом для этого клиента",
+    },
+    clientWishes: { label: "Пожелания клиента" },
+    constraints: { label: "Ограничения" },
+    directLogin: { label: "Логин в Директе" },
+    history: {
+      label: "История",
+      hint: "Крупными мазками, тезисно: вехи, решения, тесты, результаты, динамика — с цифрами, где помните",
+      placeholder: "Запустили в феврале 2023. Сначала работал слабо…",
+    },
+    problems: {
+      label: "Текущие нерешённые проблемы",
+      hint: "Всё, что есть, в порядке приоритета",
+      placeholder: "— низкий сезон, мало достижений цели…",
+    },
+    questions: {
+      label: "Вопросы к анализу",
+      hint: "Вопросы, ответ на которые есть только в данных, а не в голове — в порядке приоритета",
+      placeholder: "— почему в среду обычно проседает CPL…",
+    },
+  },
+
+  goalFields: {
+    goalId: { label: "ID", placeholder: "5098203" },
+    name: { label: "Название", placeholder: "Сводная" },
+    level: { label: "Макро/микро" },
+    description: { label: "Описание", placeholder: "Все формы + переход в вотсап" },
+    validDatesNote: {
+      label: "Даты, за которые можно верить",
+      placeholder: "Добавили 23.12.23 днём, полноценно верить с 24.12.23",
+    },
+  },
+
   // ——— 06. Восемь стратегических тултипов (до 20 слов) ———
   tooltips: {
     checkpoints:
@@ -188,6 +231,11 @@ export const COPY = {
     dontSave: "Не сохранять",
     addReportUrl: "Вставить ссылку на отчёт",
     editReportUrl: "Изменить ссылку",
+    saveInfo: "Сохранить",
+    addLink: "Добавить ссылку",
+    addGoal: "Добавить цель",
+    openProject: "Открыть",
+    backToProjects: "К проектам",
   },
 };
 

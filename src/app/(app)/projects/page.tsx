@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createProject, deleteProject, renameProject } from "@/app/actions";
 import { COPY, actionWord } from "@/lib/microcopy";
 import DeleteProjectButton from "@/components/DeleteProjectButton";
-import { IconPlus } from "@/components/icons";
+import { IconArrowRight, IconPlus } from "@/components/icons";
 
 export default async function ProjectsPage() {
   const projects = await prisma.project.findMany({
@@ -57,6 +58,14 @@ export default async function ProjectsPage() {
             <span className="shrink-0 text-2xs tabular-nums text-fg-subtle">
               {project._count.actions} {actionWord(project._count.actions)}
             </span>
+            <Link
+              href={`/projects/${project.id}`}
+              title={COPY.cta.openProject}
+              aria-label={COPY.cta.openProject}
+              className="btn-icon shrink-0"
+            >
+              <IconArrowRight className="h-3.5 w-3.5" />
+            </Link>
             <form action={deleteProject} className="shrink-0">
               <input type="hidden" name="id" value={project.id} />
               <DeleteProjectButton
