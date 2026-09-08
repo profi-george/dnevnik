@@ -118,7 +118,7 @@ export default function CheckpointResultForm({ checkpointId, overdue, defaultRes
           className="btn btn-primary btn-sm h-fit self-start"
         >
           {isPending && <Spinner className="h-3 w-3" />}
-          {overdue ? COPY.cta.saveResultOverdue : COPY.cta.saveResult}
+          {COPY.cta.saveResult}
         </button>
       </div>
 

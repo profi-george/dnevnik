@@ -55,8 +55,7 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
   return (
     <form action={createAction} className="card flex flex-col gap-4 p-5">
       <div className="flex flex-col gap-1 border-b border-line-soft pb-4">
-        <h2 className="text-base font-semibold tracking-tight text-fg">Записать правку</h2>
-        <p className="hint">
+        <p className="text-13 font-medium text-fg-muted">
           {noCheckpoints
             ? "Проверки не планируем — напоминаний не будет"
             : "Три проверки создадутся автоматически"}

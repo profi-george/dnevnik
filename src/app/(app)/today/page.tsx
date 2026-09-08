@@ -27,7 +27,7 @@ export default async function TodayPage({ searchParams }: Props) {
 
   const totalActions = await prisma.action.count();
   const empty = totalActions === 0 ? COPY.empty.todayNothing : COPY.empty.todayAllDone;
-  const emptyHref = totalActions === 0 ? "/diary/add" : "/diary";
+  const emptyHref = totalActions === 0 ? "/diary/bulk" : "/diary";
   const overdueCount = checkpoints.filter((cp) => new Date(cp.plannedDate) < startOfToday()).length;
 
   return (

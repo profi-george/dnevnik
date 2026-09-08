@@ -308,10 +308,16 @@ export async function parseActionsWithAI(
   return parseActionsFromText(rawText);
 }
 
-// Общее создание строк действия с полным набором проверок (сутки/неделя/месяц) —
-// используется и при массовой записи через ИИ, и при разборе результата проверки
-// на новые действия. Возвращает число реально созданных строк (пустые пропускает).
-async function createActionRows(projectId: string, date: Date, actions: ParsedAction[]): Promise<number> {
+// Общее создание строк действия с проверками — используется и при массовой записи
+// через ИИ, и при разборе результата проверки на новые действия. По умолчанию — полный
+// набор (сутки/неделя/месяц); noCheckpoints и customCheckDate дают тот же контроль, что
+// и в ручной форме. Возвращает число реально созданных строк (пустые пропускает).
+async function createActionRows(
+  projectId: string,
+  date: Date,
+  actions: ParsedAction[],
+  options: { noCheckpoints?: boolean; customCheckDate?: Date } = {},
+): Promise<number> {
   const usable = actions.filter((a) => a.place?.trim() && a.description?.trim());
   if (usable.length === 0) return 0;
 
@@ -325,13 +331,18 @@ async function createActionRows(projectId: string, date: Date, actions: ParsedAc
           description: a.description.trim(),
           justification: a.justification?.trim() || null,
           note: a.note?.trim() || null,
-          checkpoints: {
-            create: [
-              { type: "DAY", plannedDate: addDays(date, 1) },
-              { type: "WEEK", plannedDate: addDays(date, 7) },
-              { type: "MONTH", plannedDate: addDays(date, 30) },
-            ],
-          },
+          checkpoints: options.noCheckpoints
+            ? undefined
+            : {
+                create: [
+                  { type: "DAY", plannedDate: addDays(date, 1) },
+                  { type: "WEEK", plannedDate: addDays(date, 7) },
+                  { type: "MONTH", plannedDate: addDays(date, 30) },
+                  ...(options.customCheckDate
+                    ? [{ type: "CUSTOM" as const, plannedDate: options.customCheckDate }]
+                    : []),
+                ],
+              },
         },
       }),
     ),
@@ -344,11 +355,15 @@ export async function createActionsBulk(
   projectId: string,
   dateValue: string,
   actions: ParsedAction[],
+  options?: { noCheckpoints?: boolean; customCheckDate?: string },
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
   if (!projectId) return { ok: false, error: COPY.errors.projectMissing };
   if (!dateValue) return { ok: false, error: "Дата действия обязательна." };
 
-  const count = await createActionRows(projectId, parseDateInput(dateValue), actions);
+  const count = await createActionRows(projectId, parseDateInput(dateValue), actions, {
+    noCheckpoints: options?.noCheckpoints,
+    customCheckDate: options?.customCheckDate ? parseDateInput(options.customCheckDate) : undefined,
+  });
   if (count === 0) {
     return { ok: false, error: "Нет ни одной заполненной правки для сохранения." };
   }

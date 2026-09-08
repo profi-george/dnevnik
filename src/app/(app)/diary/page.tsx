@@ -68,7 +68,7 @@ export default async function DiaryPage({ searchParams }: Props) {
     ? { ...COPY.empty.diaryFiltered, href: "/diary" }
     : projects.length === 0
       ? { ...COPY.empty.diaryNoProjects, href: "/projects" }
-      : { ...COPY.empty.diaryNoActions, href: "/diary/add" };
+      : { ...COPY.empty.diaryNoActions, href: "/diary/bulk" };
 
   const baseParams: Record<string, string> = {};
   if (q) baseParams.q = q;
