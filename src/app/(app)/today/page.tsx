@@ -121,7 +121,7 @@ export default async function TodayPage({ searchParams }: Props) {
                   )}
                 </div>
 
-                <CheckpointResultForm checkpointId={cp.id} overdue={isOverdue} defaultResult="" />
+                <CheckpointResultForm checkpointId={cp.id} defaultResult="" />
               </li>
             );
           })}

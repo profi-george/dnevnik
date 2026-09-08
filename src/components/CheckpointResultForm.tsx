@@ -12,14 +12,13 @@ import { IconAlert, IconCheck, IconPlus, IconSparkles, Spinner } from "@/compone
 
 type Props = {
   checkpointId: string;
-  overdue: boolean;
   defaultResult: string;
   onSaved?: () => void;
 };
 
 type FollowUpState = "closed" | "parsing" | "review" | "created";
 
-export default function CheckpointResultForm({ checkpointId, overdue, defaultResult, onSaved }: Props) {
+export default function CheckpointResultForm({ checkpointId, defaultResult, onSaved }: Props) {
   const [result, setResult] = useState(defaultResult);
   const [saved, setSaved] = useState(!!defaultResult);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -108,7 +107,6 @@ export default function CheckpointResultForm({ checkpointId, overdue, defaultRes
           required
           rows={2}
           aria-label={COPY.fields.result.label}
-          placeholder={COPY.fields.result.placeholder}
           className="field min-w-48 flex-1"
         />
         <button
@@ -129,13 +127,11 @@ export default function CheckpointResultForm({ checkpointId, overdue, defaultRes
         </p>
       )}
 
-      {saved ? (
+      {saved && (
         <p className="inline-flex items-center gap-1 text-2xs text-ok">
           <IconCheck className="h-3 w-3 shrink-0" />
           Результат сохранён
         </p>
-      ) : (
-        <p className="hint">{overdue ? COPY.tooltips.overdue : COPY.fields.result.hint}</p>
       )}
 
       {saved && followUp === "closed" && (

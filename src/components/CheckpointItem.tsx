@@ -147,7 +147,6 @@ export default function CheckpointItem({
             <span className="micro">{COPY.fields.result.label}</span>
             <CheckpointResultForm
               checkpointId={id}
-              overdue={overdue}
               defaultResult={result ?? ""}
               onSaved={() => setLocallyDone(true)}
             />

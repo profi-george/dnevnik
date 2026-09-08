@@ -139,8 +139,6 @@ export const COPY = {
     },
     result: {
       label: "Что показали цифры",
-      placeholder: "CPA 1 340 ₽ вместо 1 980 ₽, конверсий столько же",
-      hint: "Сравните с тем, что было до правки",
     },
     filterProject: { label: "Проект", placeholder: "Все проекты" },
     filterFrom: { label: "Период правок с", placeholder: "с 1 августа" },
