@@ -1,5 +1,5 @@
-import { updateProjectInfo } from "@/app/actions";
 import { COPY } from "@/lib/microcopy";
+import ProjectInfoField from "@/components/ProjectInfoField";
 
 type Project = {
   id: string;
@@ -16,57 +16,76 @@ type Project = {
 };
 
 const F = COPY.projectInfo;
-const label = "text-13 font-medium text-fg";
 
-function Field({
-  name,
-  label: fieldLabel,
-  value,
-  hint,
-}: {
-  name: keyof typeof F;
-  label: string;
-  value: string | null;
-  hint?: string;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className={label}>{fieldLabel}</span>
-      <input type="text" name={name} defaultValue={value ?? ""} className="field" />
-      {hint && <span className="hint">{hint}</span>}
-    </label>
+    <div className="flex flex-col gap-3">
+      <h3 className="micro">{title}</h3>
+      <div className="grid grid-cols-2 gap-4">{children}</div>
+    </div>
   );
 }
 
 export default function ProjectInfoForm({ project }: { project: Project }) {
+  const p = project.id;
+
   return (
-    <form action={updateProjectInfo} className="card flex flex-col gap-4 p-5">
-      <input type="hidden" name="id" value={project.id} />
+    <div className="card flex flex-col gap-5 p-5">
       <h2 className="text-base font-semibold tracking-tight text-fg">Вводные</h2>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field name="topic" label={F.topic.label} value={project.topic} />
-        <Field name="site" label={F.site.label} value={project.site} />
-        <Field name="budget" label={F.budget.label} value={project.budget} />
-        <Field name="regions" label={F.regions.label} value={project.regions} />
-        <Field name="priorities" label={F.priorities.label} value={project.priorities} />
-        <Field name="businessGoals" label={F.businessGoals.label} value={project.businessGoals} />
-        <Field
-          name="qualifiedLeadParams"
+      <Section title="О клиенте">
+        <ProjectInfoField projectId={p} field="topic" label={F.topic.label} value={project.topic} />
+        <ProjectInfoField projectId={p} field="site" label={F.site.label} value={project.site} />
+        <ProjectInfoField projectId={p} field="budget" label={F.budget.label} value={project.budget} />
+        <ProjectInfoField projectId={p} field="regions" label={F.regions.label} value={project.regions} />
+        <ProjectInfoField
+          projectId={p}
+          field="directLogin"
+          label={F.directLogin.label}
+          value={project.directLogin}
+        />
+      </Section>
+
+      <div className="border-t border-line-soft" />
+
+      <Section title="Стратегия">
+        <ProjectInfoField
+          projectId={p}
+          field="priorities"
+          label={F.priorities.label}
+          value={project.priorities}
+        />
+        <ProjectInfoField
+          projectId={p}
+          field="businessGoals"
+          label={F.businessGoals.label}
+          value={project.businessGoals}
+        />
+        <ProjectInfoField
+          projectId={p}
+          field="qualifiedLeadParams"
           label={F.qualifiedLeadParams.label}
           value={project.qualifiedLeadParams}
           hint={F.qualifiedLeadParams.hint}
         />
-        <Field name="clientWishes" label={F.clientWishes.label} value={project.clientWishes} />
-        <Field name="constraints" label={F.constraints.label} value={project.constraints} />
-        <Field name="directLogin" label={F.directLogin.label} value={project.directLogin} />
-      </div>
+      </Section>
 
-      <div className="border-t border-line-soft pt-4">
-        <button type="submit" className="btn btn-primary">
-          {COPY.cta.saveInfo}
-        </button>
-      </div>
-    </form>
+      <div className="border-t border-line-soft" />
+
+      <Section title="Клиент">
+        <ProjectInfoField
+          projectId={p}
+          field="clientWishes"
+          label={F.clientWishes.label}
+          value={project.clientWishes}
+        />
+        <ProjectInfoField
+          projectId={p}
+          field="constraints"
+          label={F.constraints.label}
+          value={project.constraints}
+        />
+      </Section>
+    </div>
   );
 }

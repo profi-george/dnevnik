@@ -59,20 +59,21 @@ const PROJECT_INFO_FIELDS = [
   "constraints",
   "directLogin",
 ] as const;
-type ProjectInfoField = (typeof PROJECT_INFO_FIELDS)[number];
+export type ProjectInfoField = (typeof PROJECT_INFO_FIELDS)[number];
 
-// Вводные сохраняются одной формой целиком — заполняются один раз и редко правятся.
-export async function updateProjectInfo(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  if (!id) return;
-
-  const data: Partial<Record<ProjectInfoField, string | null>> = {};
-  for (const field of PROJECT_INFO_FIELDS) {
-    data[field] = String(formData.get(field) ?? "").trim() || null;
+// Каждое поле вводных читается как обычный текст и правится по клику на карандашик —
+// сохраняется само, без общей кнопки «Сохранить».
+export async function updateProjectInfoField(
+  id: string,
+  field: ProjectInfoField,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id || !PROJECT_INFO_FIELDS.includes(field)) {
+    return { ok: false, error: COPY.errors.cellSaveFailed };
   }
-
-  await prisma.project.update({ where: { id }, data });
+  await prisma.project.update({ where: { id }, data: { [field]: value.trim() || null } });
   revalidatePath(`/projects/${id}`);
+  return { ok: true };
 }
 
 const PROJECT_TEXT_SECTIONS = ["history", "problems", "questions"] as const;
