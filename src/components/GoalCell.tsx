@@ -14,9 +14,10 @@ type Props = {
   value: string;
   placeholder?: string;
   select?: { value: string; label: string }[];
+  readOnly?: boolean;
 };
 
-export default function GoalCell({ id, projectId, field, value, placeholder, select }: Props) {
+export default function GoalCell({ id, projectId, field, value, placeholder, select, readOnly }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [status, setStatus] = useState<Status>(null);
@@ -49,6 +50,11 @@ export default function GoalCell({ id, projectId, field, value, placeholder, sel
       {status.text}
     </span>
   );
+
+  if (readOnly) {
+    const text = select ? (select.find((o) => o.value === value)?.label ?? value) : value;
+    return <span className={`cell ${text ? "" : "cell-empty"}`}>{text || placeholder || "—"}</span>;
+  }
 
   if (select) {
     return (

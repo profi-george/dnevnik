@@ -17,7 +17,7 @@ export default function GoalDeleteButton({ id, projectId }: { id: string; projec
       }
       title="Удалить цель"
       aria-label="Удалить цель"
-      className="btn-icon btn-icon-danger opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+      className="btn-icon btn-icon-danger"
     >
       <IconTrash className="h-3.5 w-3.5" />
     </button>

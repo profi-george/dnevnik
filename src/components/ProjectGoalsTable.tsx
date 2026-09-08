@@ -1,5 +1,8 @@
+"use client";
+
 import { createProjectGoal } from "@/app/actions";
 import { COPY } from "@/lib/microcopy";
+import { useProjectEditing } from "@/components/ProjectEditContext";
 import GoalCell from "@/components/GoalCell";
 import GoalDeleteButton from "@/components/GoalDeleteButton";
 import { IconPlus } from "@/components/icons";
@@ -20,11 +23,13 @@ const LEVEL_OPTIONS = [
 ];
 
 export default function ProjectGoalsTable({ projectId, goals }: { projectId: string; goals: Goal[] }) {
+  const editing = useProjectEditing();
+
   return (
     <div className="card flex flex-col gap-3 p-5">
       <h2 className="text-base font-semibold tracking-tight text-fg">Карта целей</h2>
 
-      {goals.length > 0 && (
+      {goals.length > 0 ? (
         <div className="overflow-x-clip rounded-md border border-line max-xl:overflow-x-auto">
           <table className="tbl table-fixed min-w-[52rem]">
             <colgroup>
@@ -33,7 +38,7 @@ export default function ProjectGoalsTable({ projectId, goals }: { projectId: str
               <col style={{ width: "10%" }} />
               <col style={{ width: "32%" }} />
               <col style={{ width: "27%" }} />
-              <col style={{ width: "5%" }} />
+              {editing && <col style={{ width: "5%" }} />}
             </colgroup>
             <thead>
               <tr>
@@ -42,17 +47,29 @@ export default function ProjectGoalsTable({ projectId, goals }: { projectId: str
                 <th>{F.level.label}</th>
                 <th>{F.description.label}</th>
                 <th>{F.validDatesNote.label}</th>
-                <th aria-hidden></th>
+                {editing && <th aria-hidden></th>}
               </tr>
             </thead>
             <tbody>
               {goals.map((goal) => (
                 <tr key={goal.id} className="group">
                   <td>
-                    <GoalCell id={goal.id} projectId={projectId} field="goalId" value={goal.goalId} />
+                    <GoalCell
+                      id={goal.id}
+                      projectId={projectId}
+                      field="goalId"
+                      value={goal.goalId}
+                      readOnly={!editing}
+                    />
                   </td>
                   <td>
-                    <GoalCell id={goal.id} projectId={projectId} field="name" value={goal.name} />
+                    <GoalCell
+                      id={goal.id}
+                      projectId={projectId}
+                      field="name"
+                      value={goal.name}
+                      readOnly={!editing}
+                    />
                   </td>
                   <td>
                     <GoalCell
@@ -61,6 +78,7 @@ export default function ProjectGoalsTable({ projectId, goals }: { projectId: str
                       field="level"
                       value={goal.level}
                       select={LEVEL_OPTIONS}
+                      readOnly={!editing}
                     />
                   </td>
                   <td>
@@ -70,6 +88,7 @@ export default function ProjectGoalsTable({ projectId, goals }: { projectId: str
                       field="description"
                       value={goal.description ?? ""}
                       placeholder={F.description.placeholder}
+                      readOnly={!editing}
                     />
                   </td>
                   <td>
@@ -79,46 +98,59 @@ export default function ProjectGoalsTable({ projectId, goals }: { projectId: str
                       field="validDatesNote"
                       value={goal.validDatesNote ?? ""}
                       placeholder={F.validDatesNote.placeholder}
+                      readOnly={!editing}
                     />
                   </td>
-                  <td className="text-center">
-                    <GoalDeleteButton id={goal.id} projectId={projectId} />
-                  </td>
+                  {editing && (
+                    <td className="text-center">
+                      <GoalDeleteButton id={goal.id} projectId={projectId} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      ) : (
+        !editing && <p className="text-13 text-fg-subtle">—</p>
       )}
 
-      <form
-        action={createProjectGoal}
-        className="flex flex-wrap items-end gap-2 border-t border-line-soft pt-3"
-      >
-        <input type="hidden" name="projectId" value={projectId} />
-        <label className="flex w-24 flex-col gap-1">
-          <span className="micro">{F.goalId.label}</span>
-          <input type="text" name="goalId" required placeholder={F.goalId.placeholder} className="field" />
-        </label>
-        <label className="flex flex-1 basis-32 flex-col gap-1">
-          <span className="micro">{F.name.label}</span>
-          <input type="text" name="name" required placeholder={F.name.placeholder} className="field" />
-        </label>
-        <label className="flex w-28 flex-col gap-1">
-          <span className="micro">{F.level.label}</span>
-          <select name="level" defaultValue="MACRO" className="field">
-            {LEVEL_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="submit" className="btn btn-secondary shrink-0">
-          <IconPlus className="h-3.5 w-3.5" />
-          {COPY.cta.addGoal}
-        </button>
-      </form>
+      {editing && (
+        <form
+          action={createProjectGoal}
+          className="flex flex-wrap items-end gap-2 border-t border-line-soft pt-3"
+        >
+          <input type="hidden" name="projectId" value={projectId} />
+          <label className="flex w-24 flex-col gap-1">
+            <span className="micro">{F.goalId.label}</span>
+            <input
+              type="text"
+              name="goalId"
+              required
+              placeholder={F.goalId.placeholder}
+              className="field"
+            />
+          </label>
+          <label className="flex flex-1 basis-32 flex-col gap-1">
+            <span className="micro">{F.name.label}</span>
+            <input type="text" name="name" required placeholder={F.name.placeholder} className="field" />
+          </label>
+          <label className="flex w-28 flex-col gap-1">
+            <span className="micro">{F.level.label}</span>
+            <select name="level" defaultValue="MACRO" className="field">
+              {LEVEL_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="btn btn-secondary shrink-0">
+            <IconPlus className="h-3.5 w-3.5" />
+            {COPY.cta.addGoal}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

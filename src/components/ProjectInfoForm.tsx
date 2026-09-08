@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { updateProjectInfo } from "@/app/actions";
 import { COPY } from "@/lib/microcopy";
-import { IconPencil } from "@/components/icons";
+import { useProjectEditing } from "@/components/ProjectEditContext";
 
 type Project = {
   id: string;
@@ -60,32 +60,18 @@ function EditRow({
 }
 
 export default function ProjectInfoForm({ project: p }: { project: Project }) {
-  const [editing, setEditing] = useState(false);
+  const editing = useProjectEditing();
   const [isPending, startTransition] = useTransition();
 
   function save(formData: FormData) {
     startTransition(async () => {
       await updateProjectInfo(formData);
-      setEditing(false);
     });
   }
 
   return (
     <div className="card flex flex-col gap-5 p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold tracking-tight text-fg">Вводные</h2>
-        {!editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            title="Редактировать вводные"
-            aria-label="Редактировать вводные"
-            className="btn-icon"
-          >
-            <IconPencil className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
+      <h2 className="text-base font-semibold tracking-tight text-fg">Вводные</h2>
 
       {editing ? (
         <form action={save} className="flex flex-col gap-5">
@@ -119,12 +105,9 @@ export default function ProjectInfoForm({ project: p }: { project: Project }) {
             <EditRow name="constraints" label={F.constraints.label} defaultValue={p.constraints} />
           </Section>
 
-          <div className="flex items-center gap-3 border-t border-line-soft pt-4">
+          <div className="border-t border-line-soft pt-4">
             <button type="submit" className="btn btn-primary" disabled={isPending}>
               {isPending ? "Сохраняю…" : COPY.cta.saveInfo}
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
-              {COPY.cta.dontSave}
             </button>
           </div>
         </form>

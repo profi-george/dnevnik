@@ -8,6 +8,7 @@ import ProjectInfoForm from "@/components/ProjectInfoForm";
 import ProjectTextSection from "@/components/ProjectTextSection";
 import ProjectLinksEditor from "@/components/ProjectLinksEditor";
 import ProjectGoalsTable from "@/components/ProjectGoalsTable";
+import ProjectTabs from "@/components/ProjectTabs";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -46,12 +47,40 @@ export default async function ProjectDetailPage({ params }: Props) {
         </Link>
       </div>
 
-      <ProjectInfoForm project={project} />
-      <ProjectLinksEditor projectId={project.id} links={project.links} />
-      <ProjectTextSection projectId={project.id} field="history" value={project.history} />
-      <ProjectTextSection projectId={project.id} field="problems" value={project.problems} />
-      <ProjectTextSection projectId={project.id} field="questions" value={project.questions} />
-      <ProjectGoalsTable projectId={project.id} goals={project.goals} />
+      <ProjectTabs
+        tabs={[
+          { id: "info", label: "Вводные", content: <ProjectInfoForm project={project} /> },
+          {
+            id: "links",
+            label: "Важные ссылки",
+            content: <ProjectLinksEditor projectId={project.id} links={project.links} />,
+          },
+          {
+            id: "history",
+            label: "История",
+            content: <ProjectTextSection projectId={project.id} field="history" value={project.history} />,
+          },
+          {
+            id: "problems",
+            label: "Проблемы",
+            content: (
+              <ProjectTextSection projectId={project.id} field="problems" value={project.problems} />
+            ),
+          },
+          {
+            id: "questions",
+            label: "Вопросы",
+            content: (
+              <ProjectTextSection projectId={project.id} field="questions" value={project.questions} />
+            ),
+          },
+          {
+            id: "goals",
+            label: "Карта целей",
+            content: <ProjectGoalsTable projectId={project.id} goals={project.goals} />,
+          },
+        ]}
+      />
     </div>
   );
 }
