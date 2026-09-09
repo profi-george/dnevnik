@@ -6,16 +6,26 @@ import { parseActionsWithAI, createActionsBulk, createProjectAndReturn } from "@
 import { toDateInputValue } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
 import type { ParsedAction } from "@/lib/gemini";
-import { IconAlert, IconArrowLeft, IconPlus, IconSparkles, Spinner } from "@/components/icons";
+import { IconAlert, IconArrowLeft, IconArrowRight, IconCheck, IconPlus, IconSparkles, Spinner } from "@/components/icons";
 
 type Project = { id: string; name: string };
 
 const DEFAULT_PROJECT_NAME = "Gclinic";
+const PD_ID_URL = "https://pd-id.vercel.app";
 
-export default function BulkAddForm({ projects: initialProjects }: { projects: Project[] }) {
+export default function BulkAddForm({
+  projects: initialProjects,
+  initialText,
+  taskId,
+}: {
+  projects: Project[];
+  initialText?: string;
+  taskId?: string;
+}) {
   const router = useRouter();
-  const [step, setStep] = useState<"input" | "review">("input");
-  const [rawText, setRawText] = useState("");
+  const [step, setStep] = useState<"input" | "review" | "done">("input");
+  const [rawText, setRawText] = useState(initialText ?? "");
+  const [savedCount, setSavedCount] = useState(0);
   const [projectList, setProjectList] = useState(initialProjects);
   const [projectId, setProjectId] = useState(
     initialProjects.find((p) => p.name === DEFAULT_PROJECT_NAME)?.id ?? initialProjects[0]?.id ?? "",
@@ -113,7 +123,8 @@ export default function BulkAddForm({ projects: initialProjects }: { projects: P
         setError(result.error);
         return;
       }
-      router.push("/diary");
+      setSavedCount(result.count);
+      setStep("done");
     });
   }
 
@@ -291,6 +302,31 @@ export default function BulkAddForm({ projects: initialProjects }: { projects: P
           <a href="/diary" className="btn btn-ghost">
             Не сохранять
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "done") {
+    const pdIdHref = taskId
+      ? `${PD_ID_URL}/today?complete=${encodeURIComponent(taskId)}`
+      : `${PD_ID_URL}/add?text=${encodeURIComponent(rawText.trim())}`;
+    const pdIdLabel = taskId ? "Отметить задачу выполненной в ПД-ИД" : "Добавить как задачу в ПД-ИД";
+
+    return (
+      <div className="card flex flex-col gap-4 p-5">
+        <p className="inline-flex items-center gap-1.5 text-13 text-ok">
+          <IconCheck className="h-4 w-4 shrink-0" />
+          {savedCount === 1 ? "Правка сохранена" : `Правки сохранены (${savedCount})`}
+        </p>
+        <div className="flex flex-wrap items-center gap-3 border-t border-line-soft pt-4">
+          <a href={pdIdHref} target="_blank" rel="noreferrer" className="btn btn-secondary">
+            {pdIdLabel}
+            <IconArrowRight className="h-3.5 w-3.5" />
+          </a>
+          <button type="button" onClick={() => router.push("/diary")} className="btn btn-ghost">
+            Перейти в дневник
+          </button>
         </div>
       </div>
     );

@@ -3,7 +3,12 @@ import { prisma } from "@/lib/prisma";
 import BulkAddForm from "@/components/BulkAddForm";
 import { IconArrowLeft, IconArrowRight } from "@/components/icons";
 
-export default async function BulkAddPage() {
+type Props = {
+  searchParams: Promise<{ text?: string; taskId?: string }>;
+};
+
+export default async function BulkAddPage({ searchParams }: Props) {
+  const { text, taskId } = await searchParams;
   const projects = await prisma.project.findMany({ orderBy: { name: "asc" } });
 
   if (projects.length === 0) {
@@ -28,7 +33,7 @@ export default async function BulkAddPage() {
           Одна правка вручную
         </Link>
       </div>
-      <BulkAddForm projects={projects} />
+      <BulkAddForm projects={projects} initialText={text} taskId={taskId} />
     </div>
   );
 }
