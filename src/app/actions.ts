@@ -390,6 +390,17 @@ export async function submitCheckpointResult(
   return { ok: true };
 }
 
+// Не по каждой проверке есть что написать в результат (например, ничего не изменилось
+// и не на чем строить вывод) — снимаем без обязательного текста, отдельно от обычного
+// «Сохранить результат», которое текст требует.
+export async function closeCheckpointWithoutResult(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: COPY.errors.cellSaveFailed };
+  await prisma.checkpoint.update({ where: { id }, data: { status: "DONE" } });
+  return { ok: true };
+}
+
 // Разбор текста результата проверки на новые действия — если снятие само стало поводом
 // для новой правки в кампании, её тоже нужно занести в дневник отдельной строкой.
 export async function parseCheckpointFollowUp(
@@ -402,12 +413,26 @@ export async function parseCheckpointFollowUp(
     include: { action: true },
   });
   if (!checkpoint) return { ok: false, error: "Проверка не найдена." };
-  return parseFollowUpActionsFromResult(resultText, checkpoint.action.place);
+
+  // Последняя зафиксированная правка по этому месту — не обязательно то же действие,
+  // к которому привязана эта проверка: могли внести более свежую правку отдельно.
+  // Без этого ИИ считает «было» от исходной правки, а не от актуального значения.
+  const latestAction = await prisma.action.findFirst({
+    where: { projectId: checkpoint.action.projectId, place: checkpoint.action.place },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return parseFollowUpActionsFromResult(
+    resultText,
+    checkpoint.action.place,
+    latestAction?.description ?? checkpoint.action.description,
+  );
 }
 
 export async function createCheckpointFollowUpActions(
   checkpointId: string,
   actions: ParsedAction[],
+  dateValue?: string,
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
   if (!checkpointId) return { ok: false, error: "Не передан id проверки." };
   const checkpoint = await prisma.checkpoint.findUnique({
@@ -416,7 +441,8 @@ export async function createCheckpointFollowUpActions(
   });
   if (!checkpoint) return { ok: false, error: "Проверка не найдена." };
 
-  const count = await createActionRows(checkpoint.action.projectId, startOfToday(), actions);
+  const date = dateValue ? parseDateInput(dateValue) : startOfToday();
+  const count = await createActionRows(checkpoint.action.projectId, date, actions);
   if (count === 0) {
     return { ok: false, error: "Нет ни одной заполненной правки для сохранения." };
   }

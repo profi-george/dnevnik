@@ -3,9 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import {
   submitCheckpointResult,
+  closeCheckpointWithoutResult,
   parseCheckpointFollowUp,
   createCheckpointFollowUpActions,
 } from "@/app/actions";
+import { toDateInputValue } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
 import type { ParsedAction } from "@/lib/gemini";
 import { IconAlert, IconCheck, IconPlus, IconSparkles, Spinner } from "@/components/icons";
@@ -27,6 +29,7 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
   const [followUp, setFollowUp] = useState<FollowUpState>("closed");
   const [followUpElapsed, setFollowUpElapsed] = useState(0);
   const [followUpRows, setFollowUpRows] = useState<ParsedAction[]>([]);
+  const [followUpDate, setFollowUpDate] = useState(toDateInputValue(new Date()));
   const [followUpError, setFollowUpError] = useState<string | null>(null);
   const [createdCount, setCreatedCount] = useState(0);
 
@@ -47,6 +50,20 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
         setSaveError(res.error);
         return;
       }
+      setSaved(true);
+      onSaved?.();
+    });
+  }
+
+  function closeWithoutResult() {
+    setSaveError(null);
+    startTransition(async () => {
+      const res = await closeCheckpointWithoutResult(checkpointId);
+      if (!res.ok) {
+        setSaveError(res.error);
+        return;
+      }
+      setResult("");
       setSaved(true);
       onSaved?.();
     });
@@ -87,7 +104,7 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
   function saveFollowUp() {
     setFollowUpError(null);
     startTransition(async () => {
-      const res = await createCheckpointFollowUpActions(checkpointId, followUpRows);
+      const res = await createCheckpointFollowUpActions(checkpointId, followUpRows, followUpDate);
       if (!res.ok) {
         setFollowUpError(res.error);
         return;
@@ -120,6 +137,17 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
         </button>
       </div>
 
+      {!saved && (
+        <button
+          type="button"
+          onClick={closeWithoutResult}
+          disabled={isPending}
+          className="link w-fit text-2xs"
+        >
+          Снять без результата — писать нечего
+        </button>
+      )}
+
       {saveError && (
         <p className="inline-flex items-center gap-1 text-2xs text-danger">
           <IconAlert className="h-3 w-3 shrink-0" />
@@ -130,11 +158,11 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
       {saved && (
         <p className="inline-flex items-center gap-1 text-2xs text-ok">
           <IconCheck className="h-3 w-3 shrink-0" />
-          Результат сохранён
+          {result.trim() ? "Результат сохранён" : "Снято без результата"}
         </p>
       )}
 
-      {saved && followUp === "closed" && (
+      {saved && result.trim() && followUp === "closed" && (
         <button
           type="button"
           onClick={startFollowUp}
@@ -159,6 +187,17 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
           <p className="text-2xs font-medium text-fg-muted">
             {followUpRows.length === 1 ? "Новое действие" : "Новые действия"} по итогам проверки — проверьте перед сохранением:
           </p>
+
+          <label className="flex flex-col gap-1">
+            <span className="micro">Дата изменения</span>
+            <input
+              type="date"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              className="field w-auto"
+            />
+          </label>
+
           {followUpRows.map((row, i) => (
             <div key={i} className="flex flex-col gap-1.5 rounded-md border border-line bg-surface p-2.5">
               <div className="flex items-center justify-between">
