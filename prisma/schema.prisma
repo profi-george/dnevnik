@@ -49,9 +49,11 @@ model Project {
   problems  String? // Текущие нерешённые проблемы, в порядке приоритета
   questions String? // Вопросы к анализу, на которые нет готового ответа
 
-  actions Action[]
-  links   ProjectLink[]
-  goals   ProjectGoal[]
+  actions   Action[]
+  links     ProjectLink[]
+  goals     ProjectGoal[]
+  risks     ProjectRisk[]
+  passwords ProjectPassword[]
 }
 
 // Важные ссылки проекта — клиентский отчёт, визуализация и т.д.
@@ -77,6 +79,28 @@ model ProjectGoal {
   order          Int       @default(0)
 }
 
+// Риски проекта — что регулярно проверять и где, чтобы не пропустить проблему.
+model ProjectRisk {
+  id        String  @id @default(cuid())
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  risk      String // суть риска
+  url       String? // ссылка для проверки
+  frequency String? // как часто проверять — «1 р/день», «пон, чт - 2 р/нед»
+  order     Int     @default(0)
+}
+
+// Логины/пароли по проекту — хранятся как обычный текст в личной базе, без шифрования:
+// это тот же уровень доступа, что и у остальных данных проекта.
+model ProjectPassword {
+  id        String  @id @default(cuid())
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  label     String // например «Яндекс.Директ», «Метрика»
+  value     String
+  order     Int     @default(0)
+}
+
 model Action {
   id        String   @id @default(cuid())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -100,4 +124,16 @@ model Checkpoint {
   plannedDate DateTime // дата действия + 1 / +7 / +30 дней
   status      CheckpointStatus @default(PENDING)
   result      String? // вписывается в момент снятия
+}
+
+// Свободные заметки/промпты — отдельно от дневника правок, просто место для хранения
+// текста под рукой (аналог Google Keep).
+model Note {
+  id        String   @id @default(cuid())
+  title     String? // необязательный — не всегда нужен для короткой заметки
+  text      String
+  color     String   @default("default") // ключ цвета фона, см. NOTE_COLORS в коде
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

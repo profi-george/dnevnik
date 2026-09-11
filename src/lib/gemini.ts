@@ -39,10 +39,15 @@ const RESPONSE_SCHEMA = {
 };
 
 type GeminiResult = { ok: true; actions: ParsedAction[] } | { ok: false; error: string };
+type GeminiRawResult = { ok: true; json: unknown } | { ok: false; error: string };
 
-// Общий вызов Gemini с обработкой перегрузки (503) и таймаута — используется и для
-// разбора текста на правки, и для разбора результата проверки на новые изменения.
-async function callGemini(systemInstruction: string, userText: string): Promise<GeminiResult> {
+// Низкоуровневый вызов Gemini с произвольной схемой ответа — обработка перегрузки (503)
+// и таймаута общая для всех сценариев разбора (правки, результат проверки, карточка проекта).
+async function callGeminiRaw(
+  systemInstruction: string,
+  userText: string,
+  schema: Record<string, unknown>,
+): Promise<GeminiRawResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return { ok: false, error: "Не настроен ключ Gemini на сервере." };
@@ -56,7 +61,7 @@ async function callGemini(systemInstruction: string, userText: string): Promise<
     contents: [{ parts: [{ text: userText }] }],
     generationConfig: {
       responseMimeType: "application/json",
-      responseSchema: RESPONSE_SCHEMA,
+      responseSchema: schema,
     },
   });
 
@@ -99,15 +104,21 @@ async function callGemini(systemInstruction: string, userText: string): Promise<
       return { ok: false, error: "Gemini не вернул текст ответа." };
     }
 
-    const parsed = JSON.parse(text) as { actions: ParsedAction[] };
-    const actions = (parsed.actions ?? []).filter((a) => a.place?.trim() && a.description?.trim());
-    return { ok: true, actions };
+    return { ok: true, json: JSON.parse(text) };
   } catch (err) {
     if (err instanceof Error && err.name === "TimeoutError") {
       return { ok: false, error: "Gemini не ответил за 45 секунд — попробуйте ещё раз или сократите текст." };
     }
     return { ok: false, error: `Не удалось связаться с Gemini: ${(err as Error).message}` };
   }
+}
+
+async function callGemini(systemInstruction: string, userText: string): Promise<GeminiResult> {
+  const result = await callGeminiRaw(systemInstruction, userText, RESPONSE_SCHEMA);
+  if (!result.ok) return result;
+  const parsed = result.json as { actions: ParsedAction[] };
+  const actions = (parsed.actions ?? []).filter((a) => a.place?.trim() && a.description?.trim());
+  return { ok: true, actions };
 }
 
 const SYSTEM_INSTRUCTION = `
@@ -203,4 +214,153 @@ export async function parseFollowUpActionsFromResult(
   lastChange?: string,
 ): Promise<GeminiResult> {
   return callGemini(followUpSystemInstruction(place, lastChange), resultText);
+}
+
+// ——— Заполнение карточки проекта через ИИ: один вольный текст → все вкладки разом ———
+
+export type ParsedProjectInfo = {
+  info: {
+    topic?: string;
+    site?: string;
+    budget?: string;
+    regions?: string;
+    priorities?: string;
+    businessGoals?: string;
+    qualifiedLeadParams?: string;
+    clientWishes?: string;
+    constraints?: string;
+    directLogin?: string;
+    history?: string;
+    problems?: string;
+    questions?: string;
+  };
+  links: { label: string; url: string }[];
+  goals: { goalId: string; name: string; level: string; description: string; validDatesNote: string }[];
+  risks: { risk: string; url: string; frequency: string }[];
+  passwords: { label: string; value: string }[];
+};
+
+const PROJECT_INFO_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    info: {
+      type: "object",
+      properties: {
+        topic: { type: "string" },
+        site: { type: "string" },
+        budget: { type: "string" },
+        regions: { type: "string" },
+        priorities: { type: "string" },
+        businessGoals: { type: "string" },
+        qualifiedLeadParams: { type: "string" },
+        clientWishes: { type: "string" },
+        constraints: { type: "string" },
+        directLogin: { type: "string" },
+        history: { type: "string" },
+        problems: { type: "string" },
+        questions: { type: "string" },
+      },
+    },
+    links: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { label: { type: "string" }, url: { type: "string" } },
+        required: ["label", "url"],
+      },
+    },
+    goals: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          goalId: { type: "string" },
+          name: { type: "string" },
+          level: { type: "string", enum: ["MACRO", "MICRO"] },
+          description: { type: "string" },
+          validDatesNote: { type: "string" },
+        },
+        required: ["goalId", "name", "level"],
+      },
+    },
+    risks: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { risk: { type: "string" }, url: { type: "string" }, frequency: { type: "string" } },
+        required: ["risk"],
+      },
+    },
+    passwords: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { label: { type: "string" }, value: { type: "string" } },
+        required: ["label", "value"],
+      },
+    },
+  },
+  required: ["info", "links", "goals", "risks", "passwords"],
+};
+
+const PROJECT_INFO_SYSTEM_INSTRUCTION = `
+Ты помогаешь директологу быстро заполнить карточку проекта в её инструменте учёта. Она
+присылает один вольный кусок текста (переписка с клиентом, бриф, заметки) — твоя задача
+разложить из него всё, что относится к делу, по нужным полям и вкладкам. Не выдумывай —
+если для поля в тексте нет данных, просто не включай его в ответ (оставь пустым).
+
+Поля вкладки «Вводные» (info):
+- topic — тематика/ниша бизнеса
+- site — сайт (домен или ссылка)
+- budget — рекламный бюджет
+- regions — регионы показа
+- priorities — приоритеты по кампаниям/направлениям
+- businessGoals — бизнес-цели клиента
+- qualifiedLeadParams — что считается квалифицированным лидом
+- clientWishes — пожелания клиента к ведению
+- constraints — ограничения (что нельзя делать)
+- directLogin — логин в Яндекс.Директе
+
+Поля свободных разделов (тоже внутри info):
+- history — история проекта крупными мазками: вехи, решения, тесты, результаты
+- problems — текущие нерешённые проблемы
+- questions — вопросы к анализу, на которые пока нет ответа
+
+Вкладка «Важные ссылки» (links) — массив {label, url}: любые упомянутые в тексте ссылки
+на отчёты, документы, визуализации с понятным названием.
+
+Вкладка «Карта целей» (goals) — массив {goalId, name, level, description, validDatesNote}:
+цели Метрики/Директа. level — "MACRO" (сводная/основная цель) или "MICRO" (промежуточная).
+Включай цель, только если в тексте явно назван её ID или название.
+
+Вкладка «Риски» (risks) — массив {risk, url, frequency}: что регулярно нужно проверять,
+чтобы не прозевать проблему (например «поисковые запросы по фидам»), ссылка для проверки
+(если есть) и как часто проверять (например «1 р/день»).
+
+Вкладка «Пароли» (passwords) — массив {label, value}: логины/доступы, упомянутые в тексте,
+например «Яндекс.Директ: login / pass». label — понятное название сервиса, value — сами
+логин/пароль как есть в тексте.
+
+Правила:
+- Ничего не придумывай сверх того, что есть в тексте.
+- Если в тексте вообще нет данных ни для одного поля/раздела — верни все поля пустыми и
+  все массивы пустыми.
+`.trim();
+
+export async function parseProjectInfoFromText(
+  rawText: string,
+): Promise<{ ok: true; data: ParsedProjectInfo } | { ok: false; error: string }> {
+  const result = await callGeminiRaw(PROJECT_INFO_SYSTEM_INSTRUCTION, rawText, PROJECT_INFO_RESPONSE_SCHEMA);
+  if (!result.ok) return result;
+  const data = result.json as ParsedProjectInfo;
+  const hasAnyInfo = data.info && Object.values(data.info).some((v) => v?.trim());
+  const hasAnyList =
+    (data.links?.length ?? 0) > 0 ||
+    (data.goals?.length ?? 0) > 0 ||
+    (data.risks?.length ?? 0) > 0 ||
+    (data.passwords?.length ?? 0) > 0;
+  if (!hasAnyInfo && !hasAnyList) {
+    return { ok: false, error: "Не удалось найти в тексте данных для карточки проекта." };
+  }
+  return { ok: true, data };
 }

@@ -18,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/diary", label: COPY.nav.diary },
     { href: "/today", label: COPY.nav.today, count: dueCount },
     { href: "/projects", label: COPY.nav.projects },
+    { href: "/notes", label: COPY.nav.notes },
   ];
 
   return (

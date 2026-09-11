@@ -13,6 +13,7 @@ export const COPY = {
     diary: "Дневник",
     today: "Снять сегодня",
     projects: "Проекты",
+    notes: "Заметки",
   },
 
   // ——— 02. Пустые состояния ———
@@ -45,6 +46,10 @@ export const COPY = {
     projectsEmpty: {
       title: "Ни одного проекта",
       body: "Проект — сайт или клиент, по которому вы ведёте кампании.",
+    },
+    notesEmpty: {
+      title: "Заметок пока нет",
+      body: "Промпт, ссылка, мысль на будущее — всё, что хочется держать под рукой.",
     },
     noCheckpoints: "Без проверок",
     noReportUrl: "Ссылки нет",
@@ -148,6 +153,9 @@ export const COPY = {
       placeholder: "Ремонт квартир · ремонт-спб.рф",
       hint: "Как вам удобно узнавать клиента в списке",
     },
+    noteTitle: { placeholder: "Заголовок — необязательно" },
+    noteText: { placeholder: "Заметка, промпт, ссылка…" },
+    noteSearch: { placeholder: "Поиск по заметкам…" },
   },
 
   // ——— 05б. Карточка проекта: вводные, свободные разделы, ссылки, цели ———
@@ -193,6 +201,17 @@ export const COPY = {
     },
   },
 
+  riskFields: {
+    risk: { label: "Риск", placeholder: "Поисковые запросы по фидам GCL" },
+    url: { label: "Ссылка", placeholder: "https://direct.yandex.ru/…" },
+    frequency: { label: "Как часто", placeholder: "1 р/день" },
+  },
+
+  passwordFields: {
+    label: { label: "Название", placeholder: "Яндекс.Директ" },
+    value: { label: "Логин / пароль", placeholder: "login:pass или логин + пароль текстом" },
+  },
+
   // ——— 06. Восемь стратегических тултипов (до 20 слов) ———
   tooltips: {
     checkpoints:
@@ -234,6 +253,15 @@ export const COPY = {
     addGoal: "Добавить цель",
     openProject: "Открыть",
     backToProjects: "К проектам",
+    addNote: "Заметка",
+    pinNote: "Закрепить",
+    unpinNote: "Открепить",
+    addRisk: "Добавить риск",
+    addPassword: "Добавить",
+    showPassword: "Показать",
+    hidePassword: "Скрыть",
+    fillWithAI: "Заполнить через ИИ",
+    applyAIFill: "Применить",
   },
 };
 

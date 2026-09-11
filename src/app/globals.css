@@ -47,6 +47,13 @@
   --color-danger-soft: oklch(0.966 0.022 27);
   --color-danger-border: oklch(0.885 0.06 27);
 
+  /* ——— Фоны карточек заметок — тихие пастельные, той же светлоты, что ok/warn-soft ——— */
+  --color-note-yellow: oklch(0.966 0.04 95);
+  --color-note-green: oklch(0.966 0.032 145);
+  --color-note-blue: oklch(0.966 0.028 235);
+  --color-note-rose: oklch(0.966 0.026 10);
+  --color-note-purple: oklch(0.966 0.026 300);
+
   /* ——— Шрифт ———
      Inter подключён через next/font в src/app/layout.tsx (латиница + кириллица) */
   --font-sans:

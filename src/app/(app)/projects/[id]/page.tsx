@@ -8,6 +8,8 @@ import ProjectInfoForm from "@/components/ProjectInfoForm";
 import ProjectTextSection from "@/components/ProjectTextSection";
 import ProjectLinksEditor from "@/components/ProjectLinksEditor";
 import ProjectGoalsTable from "@/components/ProjectGoalsTable";
+import ProjectRisksTable from "@/components/ProjectRisksTable";
+import ProjectPasswordsEditor from "@/components/ProjectPasswordsEditor";
 import ProjectTabs from "@/components/ProjectTabs";
 
 type Props = {
@@ -23,6 +25,8 @@ export default async function ProjectDetailPage({ params }: Props) {
       _count: { select: { actions: true } },
       links: { orderBy: { order: "asc" } },
       goals: { orderBy: { order: "asc" } },
+      risks: { orderBy: { order: "asc" } },
+      passwords: { orderBy: { order: "asc" } },
     },
   });
 
@@ -79,7 +83,18 @@ export default async function ProjectDetailPage({ params }: Props) {
             label: "Карта целей",
             content: <ProjectGoalsTable projectId={project.id} goals={project.goals} />,
           },
+          {
+            id: "risks",
+            label: "Риски",
+            content: <ProjectRisksTable projectId={project.id} risks={project.risks} />,
+          },
+          {
+            id: "passwords",
+            label: "Пароли",
+            content: <ProjectPasswordsEditor projectId={project.id} passwords={project.passwords} />,
+          },
         ]}
+        projectId={project.id}
       />
     </div>
   );

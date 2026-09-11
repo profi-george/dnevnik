@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ProjectEditProvider, useProjectEditToggle } from "@/components/ProjectEditContext";
+import ProjectAIFill from "@/components/ProjectAIFill";
 import { IconCheck, IconPencil } from "@/components/icons";
 
 type Tab = { id: string; label: string; content: React.ReactNode };
@@ -44,15 +45,16 @@ function TabBar({ tabs, active, onSelect }: { tabs: Tab[]; active: string; onSel
   );
 }
 
-export default function ProjectTabs({ tabs }: { tabs: Tab[] }) {
+export default function ProjectTabs({ tabs, projectId }: { tabs: Tab[]; projectId: string }) {
   const [active, setActive] = useState(tabs[0]?.id ?? "");
 
   return (
     <ProjectEditProvider>
       <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <EditToggle />
           <TabBar tabs={tabs} active={active} onSelect={setActive} />
+          <ProjectAIFill projectId={projectId} />
         </div>
         {tabs.map((tab) => (
           <div key={tab.id} hidden={active !== tab.id} className="flex flex-col gap-4">

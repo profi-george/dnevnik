@@ -5,7 +5,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { addDays, parseDateInput, startOfToday } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
-import { parseActionsFromText, parseFollowUpActionsFromResult, type ParsedAction } from "@/lib/gemini";
+import {
+  parseActionsFromText,
+  parseFollowUpActionsFromResult,
+  parseProjectInfoFromText,
+  type ParsedAction,
+  type ParsedProjectInfo,
+} from "@/lib/gemini";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function createProject(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -522,4 +529,223 @@ export async function createActionsBulk(
   revalidatePath("/diary");
   revalidatePath("/today");
   return { ok: true, count };
+}
+
+// ——— Заметки: свободное место для текста/промптов, отдельно от дневника правок ———
+
+export async function createNote(formData: FormData) {
+  const title = String(formData.get("title") ?? "").trim();
+  const text = String(formData.get("text") ?? "").trim();
+  if (!text) return;
+  await prisma.note.create({ data: { title: title || null, text } });
+  revalidatePath("/notes");
+}
+
+const NOTE_FIELDS = ["title", "text", "color"] as const;
+type NoteField = (typeof NOTE_FIELDS)[number];
+
+// Заметка правится по клику, поле за полем — сохраняется на blur, без общей кнопки.
+export async function updateNoteField(
+  id: string,
+  field: NoteField,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id || !NOTE_FIELDS.includes(field)) return { ok: false, error: COPY.errors.cellSaveFailed };
+  if (field === "text" && !value.trim()) {
+    return { ok: false, error: "Текст заметки не может быть пустым." };
+  }
+  const data = field === "title" ? { title: value.trim() || null } : { [field]: value.trim() };
+  await prisma.note.update({ where: { id }, data });
+  revalidatePath("/notes");
+  return { ok: true };
+}
+
+export async function toggleNotePin(
+  id: string,
+  pinned: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id заметки." };
+  await prisma.note.update({ where: { id }, data: { pinned } });
+  revalidatePath("/notes");
+  return { ok: true };
+}
+
+export async function deleteNote(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id заметки." };
+  await prisma.note.delete({ where: { id } });
+  revalidatePath("/notes");
+  return { ok: true };
+}
+
+// ——— Риски проекта — что регулярно проверять, чтобы не прозевать проблему ———
+
+export async function createProjectRisk(formData: FormData) {
+  const projectId = String(formData.get("projectId") ?? "");
+  const risk = String(formData.get("risk") ?? "").trim();
+  if (!projectId || !risk) return;
+
+  const url = String(formData.get("url") ?? "").trim();
+  const frequency = String(formData.get("frequency") ?? "").trim();
+  const count = await prisma.projectRisk.count({ where: { projectId } });
+  await prisma.projectRisk.create({
+    data: { projectId, risk, url: url || null, frequency: frequency || null, order: count },
+  });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+const RISK_FIELDS = ["risk", "url", "frequency"] as const;
+type RiskField = (typeof RISK_FIELDS)[number];
+
+export async function updateProjectRiskField(
+  id: string,
+  projectId: string,
+  field: RiskField,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id || !RISK_FIELDS.includes(field)) return { ok: false, error: COPY.errors.cellSaveFailed };
+  const trimmed = value.trim();
+  if (field === "risk" && !trimmed) return { ok: false, error: "Опишите риск хотя бы коротко." };
+  await prisma.projectRisk.update({ where: { id }, data: { [field]: field === "risk" ? trimmed : trimmed || null } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+export async function deleteProjectRisk(
+  id: string,
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id риска." };
+  await prisma.projectRisk.delete({ where: { id } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+// ——— Пароли проекта — хранятся как обычный текст, без шифрования ———
+
+export async function createProjectPassword(formData: FormData) {
+  const projectId = String(formData.get("projectId") ?? "");
+  const label = String(formData.get("label") ?? "").trim();
+  const value = String(formData.get("value") ?? "").trim();
+  if (!projectId || !label || !value) return;
+
+  const count = await prisma.projectPassword.count({ where: { projectId } });
+  await prisma.projectPassword.create({ data: { projectId, label, value, order: count } });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+const PASSWORD_FIELDS = ["label", "value"] as const;
+type PasswordField = (typeof PASSWORD_FIELDS)[number];
+
+export async function updateProjectPasswordField(
+  id: string,
+  projectId: string,
+  field: PasswordField,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id || !PASSWORD_FIELDS.includes(field)) return { ok: false, error: COPY.errors.cellSaveFailed };
+  const trimmed = value.trim();
+  if (!trimmed) return { ok: false, error: "Поле не может быть пустым." };
+  await prisma.projectPassword.update({ where: { id }, data: { [field]: trimmed } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+export async function deleteProjectPassword(
+  id: string,
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id записи." };
+  await prisma.projectPassword.delete({ where: { id } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+// ——— Заполнение карточки проекта через ИИ: один кусок текста → все вкладки разом ———
+
+export async function parseProjectInfoWithAI(
+  rawText: string,
+): Promise<{ ok: true; data: ParsedProjectInfo } | { ok: false; error: string }> {
+  return parseProjectInfoFromText(rawText);
+}
+
+export async function applyParsedProjectInfo(
+  projectId: string,
+  data: ParsedProjectInfo,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!projectId) return { ok: false, error: "Не передан id проекта." };
+
+  const infoData: Partial<Record<ProjectInfoField | ProjectTextSection, string | null>> = {};
+  for (const field of PROJECT_INFO_FIELDS) {
+    const value = data.info?.[field];
+    if (value && value.trim()) infoData[field] = value.trim();
+  }
+  for (const field of PROJECT_TEXT_SECTIONS) {
+    const value = data.info?.[field];
+    if (value && value.trim()) infoData[field] = value.trim();
+  }
+
+  const ops: Prisma.PrismaPromise<unknown>[] = [];
+  if (Object.keys(infoData).length > 0) {
+    ops.push(prisma.project.update({ where: { id: projectId }, data: infoData }));
+  }
+
+  const links = (data.links ?? []).filter((l) => l.label?.trim() && l.url?.trim());
+  const linkCountBase = await prisma.projectLink.count({ where: { projectId } });
+  links.forEach((l, i) => {
+    ops.push(
+      prisma.projectLink.create({
+        data: { projectId, label: l.label.trim(), url: l.url.trim(), order: linkCountBase + i },
+      }),
+    );
+  });
+
+  const goals = (data.goals ?? []).filter((g) => g.goalId?.trim() && g.name?.trim());
+  const goalCountBase = await prisma.projectGoal.count({ where: { projectId } });
+  goals.forEach((g, i) => {
+    ops.push(
+      prisma.projectGoal.create({
+        data: {
+          projectId,
+          goalId: g.goalId.trim(),
+          name: g.name.trim(),
+          level: g.level === "MICRO" ? "MICRO" : "MACRO",
+          description: g.description?.trim() || null,
+          validDatesNote: g.validDatesNote?.trim() || null,
+          order: goalCountBase + i,
+        },
+      }),
+    );
+  });
+
+  const risks = (data.risks ?? []).filter((r) => r.risk?.trim());
+  const riskCountBase = await prisma.projectRisk.count({ where: { projectId } });
+  risks.forEach((r, i) => {
+    ops.push(
+      prisma.projectRisk.create({
+        data: {
+          projectId,
+          risk: r.risk.trim(),
+          url: r.url?.trim() || null,
+          frequency: r.frequency?.trim() || null,
+          order: riskCountBase + i,
+        },
+      }),
+    );
+  });
+
+  const passwords = (data.passwords ?? []).filter((p) => p.label?.trim() && p.value?.trim());
+  const passwordCountBase = await prisma.projectPassword.count({ where: { projectId } });
+  passwords.forEach((p, i) => {
+    ops.push(
+      prisma.projectPassword.create({
+        data: { projectId, label: p.label.trim(), value: p.value.trim(), order: passwordCountBase + i },
+      }),
+    );
+  });
+
+  if (ops.length === 0) return { ok: false, error: "Нечего применять — все поля пустые." };
+  await prisma.$transaction(ops);
+
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
 }
