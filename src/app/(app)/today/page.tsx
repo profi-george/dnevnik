@@ -115,6 +115,7 @@ export default async function TodayPage({ searchParams }: Props) {
                 </div>
 
                 <div className="flex flex-col gap-0.5">
+                  <p className="hint tabular-nums">Правка внесена {formatDateRu(cp.action.date)}</p>
                   <p className="text-13 text-fg">{cp.action.description}</p>
                   {cp.action.justification && (
                     <p className="hint">Почему так решили: {cp.action.justification}</p>
