@@ -16,6 +16,8 @@ type Props = {
   autocompleteProjectId?: string;
   /** «muted» — второстепенные колонки (почему, заметка): тише основного текста */
   tone?: "default" | "muted";
+  /** Одна строка с многоточием вместо переноса — раскрывается по клику */
+  truncate?: boolean;
 };
 
 type Status = { kind: "success" | "error"; text: string } | null;
@@ -29,6 +31,7 @@ export default function InlineField({
   placeholder,
   autocompleteProjectId,
   tone = "default",
+  truncate = false,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -144,8 +147,8 @@ export default function InlineField({
       <button
         type="button"
         onClick={startEdit}
-        title="Клик — редактировать"
-        className={`cell ${type === "date" ? "whitespace-nowrap" : ""} ${
+        title={truncate && value ? value : "Клик — редактировать"}
+        className={`cell ${type === "date" ? "whitespace-nowrap" : ""} ${truncate ? "cell-clamp" : ""} ${
           value ? (tone === "muted" ? "cell-muted" : "") : "cell-empty"
         }`}
       >

@@ -425,6 +425,14 @@
     color: var(--color-fg-subtle);
   }
 
+  /* Одна строка с многоточием — для второстепенных колонок, где полный текст
+     не обязателен на глаз: клик по ячейке всё равно открывает его целиком. */
+  .cell-clamp {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .cell-input {
     display: block;
     width: 100%;

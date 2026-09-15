@@ -9,7 +9,7 @@ import DeleteActionButton from "@/components/DeleteActionButton";
 import AddCheckpointControl from "@/components/AddCheckpointControl";
 import { deleteAction } from "@/app/actions";
 import { COPY, actionWord } from "@/lib/microcopy";
-import { IconSearch, IconX } from "@/components/icons";
+import { IconArrowRight, IconSearch, IconX } from "@/components/icons";
 
 type Props = {
   searchParams: Promise<{
@@ -64,6 +64,9 @@ export default async function DiaryPage({ searchParams }: Props) {
     : actionsRaw;
 
   const filtered = !!(projectId || from || to || q || overdueOnly);
+  const advancedFilterCount = [!!(from || to), overdueOnly, !!(sort && sort !== "date_desc")].filter(
+    Boolean,
+  ).length;
   const emptyState = filtered
     ? { ...COPY.empty.diaryFiltered, href: "/diary" }
     : projects.length === 0
@@ -81,6 +84,14 @@ export default async function DiaryPage({ searchParams }: Props) {
   function hrefWithout(...keys: string[]) {
     const params = new URLSearchParams(baseParams);
     keys.forEach((k) => params.delete(k));
+    const qs = params.toString();
+    return qs ? `/diary?${qs}` : "/diary";
+  }
+
+  function hrefWithProject(id: string | null) {
+    const params = new URLSearchParams(baseParams);
+    if (id) params.set("projectId", id);
+    else params.delete("projectId");
     const qs = params.toString();
     return qs ? `/diary?${qs}` : "/diary";
   }
@@ -114,8 +125,39 @@ export default async function DiaryPage({ searchParams }: Props) {
         <p className="hint">{COPY.tooltips.inlineEdit}</p>
       </div>
 
-      {/* Панель фильтров: одна строка, компактные поля, без вертикальных подписей */}
-      <form className="card flex flex-wrap items-center gap-1.5 p-1.5">
+      {/* Проекты — карточками, не выпадающим списком: клик сразу фильтрует, без Применить */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Link
+          href={hrefWithProject(null)}
+          aria-pressed={!projectId}
+          className={`rounded-full border px-3 py-1.5 text-13 font-medium transition-colors ${
+            !projectId
+              ? "border-ink-600 bg-ink-600 text-white"
+              : "border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg"
+          }`}
+        >
+          Все проекты
+        </Link>
+        {projects.map((p) => (
+          <Link
+            key={p.id}
+            href={hrefWithProject(p.id)}
+            aria-pressed={projectId === p.id}
+            className={`rounded-full border px-3 py-1.5 text-13 font-medium transition-colors ${
+              projectId === p.id
+                ? "border-ink-600 bg-ink-600 text-white"
+                : "border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg"
+            }`}
+          >
+            {p.name}
+          </Link>
+        ))}
+      </div>
+
+      {/* Панель фильтров: поиск всегда на виду, остальное — за раскрывашкой «Фильтры» */}
+      <form className="card flex flex-wrap items-start gap-1.5 p-1.5">
+        <input type="hidden" name="projectId" value={projectId ?? ""} />
+
         <div className="relative">
           <IconSearch className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
           <input
@@ -128,60 +170,53 @@ export default async function DiaryPage({ searchParams }: Props) {
           />
         </div>
 
-        <select
-          name="projectId"
-          defaultValue={projectId ?? ""}
-          aria-label={COPY.fields.filterProject.label}
-          className="field w-auto"
-        >
-          <option value="">{COPY.fields.filterProject.placeholder}</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <details open={!!(from || to || overdueOnly || (sort && sort !== "date_desc"))}>
+          <summary className="btn btn-secondary cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
+            Фильтры{advancedFilterCount > 0 ? ` (${advancedFilterCount})` : ""}
+          </summary>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <div
+              className="flex items-center gap-1.5 rounded-md border border-line-soft bg-subtle py-1 pr-1 pl-2.5"
+              title={COPY.tooltips.periodFilter}
+            >
+              <span className="micro">Период</span>
+              <input
+                type="date"
+                name="from"
+                defaultValue={from ?? ""}
+                aria-label={COPY.fields.filterFrom.label}
+                className="field field-sm w-auto"
+              />
+              <span className="text-fg-subtle">—</span>
+              <input
+                type="date"
+                name="to"
+                defaultValue={to ?? ""}
+                aria-label={COPY.fields.filterTo.label}
+                className="field field-sm w-auto"
+              />
+            </div>
 
-        <div
-          className="flex items-center gap-1.5 rounded-md border border-line-soft bg-subtle py-1 pr-1 pl-2.5"
-          title={COPY.tooltips.periodFilter}
-        >
-          <span className="micro">Период</span>
-          <input
-            type="date"
-            name="from"
-            defaultValue={from ?? ""}
-            aria-label={COPY.fields.filterFrom.label}
-            className="field field-sm w-auto"
-          />
-          <span className="text-fg-subtle">—</span>
-          <input
-            type="date"
-            name="to"
-            defaultValue={to ?? ""}
-            aria-label={COPY.fields.filterTo.label}
-            className="field field-sm w-auto"
-          />
-        </div>
+            <select name="sort" defaultValue={sortKey} aria-label="Сортировка" className="field w-auto">
+              {Object.entries(SORT_OPTIONS).map(([key, opt]) => (
+                <option key={key} value={key}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
 
-        <select name="sort" defaultValue={sortKey} aria-label="Сортировка" className="field w-auto">
-          {Object.entries(SORT_OPTIONS).map(([key, opt]) => (
-            <option key={key} value={key}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-
-        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-13 text-fg-muted transition-colors hover:border-line-strong has-[:checked]:border-danger-border has-[:checked]:bg-danger-soft has-[:checked]:text-danger">
-          <input
-            type="checkbox"
-            name="overdue"
-            value="1"
-            defaultChecked={overdueOnly}
-            className="h-3.5 w-3.5 rounded accent-ink-600"
-          />
-          Только просроченные
-        </label>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-13 text-fg-muted transition-colors hover:border-line-strong has-[:checked]:border-danger-border has-[:checked]:bg-danger-soft has-[:checked]:text-danger">
+              <input
+                type="checkbox"
+                name="overdue"
+                value="1"
+                defaultChecked={overdueOnly}
+                className="h-3.5 w-3.5 rounded accent-ink-600"
+              />
+              Только просроченные
+            </label>
+          </div>
+        </details>
 
         <div className="ml-auto flex items-center gap-1.5">
           {filtered && (
@@ -209,6 +244,15 @@ export default async function DiaryPage({ searchParams }: Props) {
               <IconX className="h-3 w-3 opacity-60" />
             </Link>
           ))}
+          {projectId && (
+            <Link
+              href={`/projects/${projectId}`}
+              className="link inline-flex items-center gap-1 text-13"
+            >
+              Кабинет проекта
+              <IconArrowRight className="h-3 w-3" />
+            </Link>
+          )}
         </div>
       )}
 
@@ -278,6 +322,7 @@ export default async function DiaryPage({ searchParams }: Props) {
                     value={action.justification ?? ""}
                     placeholder="—"
                     tone="muted"
+                    truncate
                   />
                 </td>
                 <td>
