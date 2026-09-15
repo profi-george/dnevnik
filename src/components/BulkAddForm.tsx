@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseActionsWithAI, createActionsBulk, createProjectAndReturn } from "@/app/actions";
-import { toDateInputValue } from "@/lib/dates";
+import { addDays, parseDateInput, toDateInputValue } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
 import type { ParsedAction } from "@/lib/gemini";
 import { IconAlert, IconArrowLeft, IconArrowRight, IconCheck, IconPlus, IconSparkles, Spinner } from "@/components/icons";
@@ -39,7 +39,8 @@ export default function BulkAddForm({
   const [newProjectError, setNewProjectError] = useState<string | null>(null);
   const [date, setDate] = useState(toDateInputValue(new Date()));
   const [noCheckpoints, setNoCheckpoints] = useState(false);
-  const [customCheckDate, setCustomCheckDate] = useState("");
+  const [customCheckDate, setCustomCheckDate] = useState(toDateInputValue(addDays(new Date(), 3)));
+  const [customCheckDateTouched, setCustomCheckDateTouched] = useState(false);
   const [rows, setRows] = useState<ParsedAction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -71,6 +72,13 @@ export default function BulkAddForm({
     const timer = window.setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => window.clearInterval(timer);
   }, [parsing]);
+
+  // Дата проверки по умолчанию следует за датой правки (+3 дня), пока пользователь
+  // не поправит её вручную — дальше живёт независимо.
+  useEffect(() => {
+    if (customCheckDateTouched) return;
+    setCustomCheckDate(toDateInputValue(addDays(parseDateInput(date), 3)));
+  }, [date, customCheckDateTouched]);
 
   function parse() {
     setError(null);
@@ -249,14 +257,14 @@ export default function BulkAddForm({
 
         {!noCheckpoints && (
           <label className="flex flex-col gap-1.5">
-            <span className="text-13 font-medium text-fg">
-              {COPY.fields.customCheckDate.label}{" "}
-              <span className="font-normal text-fg-subtle">{COPY.fields.customCheckDate.optional}</span>
-            </span>
+            <span className="text-13 font-medium text-fg">{COPY.fields.customCheckDate.label}</span>
             <input
               type="date"
               value={customCheckDate}
-              onChange={(e) => setCustomCheckDate(e.target.value)}
+              onChange={(e) => {
+                setCustomCheckDateTouched(true);
+                setCustomCheckDate(e.target.value);
+              }}
               disabled={parsing}
               className="field w-auto self-start"
             />

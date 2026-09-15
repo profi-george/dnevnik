@@ -218,12 +218,10 @@ export async function createAction(formData: FormData) {
         ? undefined
         : {
             create: [
-              { type: "DAY", plannedDate: addDays(date, 1) },
-              { type: "WEEK", plannedDate: addDays(date, 7) },
-              { type: "MONTH", plannedDate: addDays(date, 30) },
-              ...(customDateValue
-                ? [{ type: "CUSTOM" as const, plannedDate: parseDateInput(customDateValue) }]
-                : []),
+              {
+                type: "CUSTOM",
+                plannedDate: customDateValue ? parseDateInput(customDateValue) : addDays(date, 3),
+              },
             ],
           },
     },
@@ -467,9 +465,9 @@ export async function parseActionsWithAI(
 }
 
 // Общее создание строк действия с проверками — используется и при массовой записи
-// через ИИ, и при разборе результата проверки на новые действия. По умолчанию — полный
-// набор (сутки/неделя/месяц); noCheckpoints и customCheckDate дают тот же контроль, что
-// и в ручной форме. Возвращает число реально созданных строк (пустые пропускает).
+// через ИИ, и при разборе результата проверки на новые действия. По умолчанию — одна
+// проверка через 3 дня; noCheckpoints отключает её, customCheckDate задаёт свою дату
+// вместо +3 дней. Возвращает число реально созданных строк (пустые пропускает).
 async function createActionRows(
   projectId: string,
   date: Date,
@@ -493,12 +491,7 @@ async function createActionRows(
             ? undefined
             : {
                 create: [
-                  { type: "DAY", plannedDate: addDays(date, 1) },
-                  { type: "WEEK", plannedDate: addDays(date, 7) },
-                  { type: "MONTH", plannedDate: addDays(date, 30) },
-                  ...(options.customCheckDate
-                    ? [{ type: "CUSTOM" as const, plannedDate: options.customCheckDate }]
-                    : []),
+                  { type: "CUSTOM", plannedDate: options.customCheckDate ?? addDays(date, 3) },
                 ],
               },
         },

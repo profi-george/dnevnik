@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { createAction, createProjectAndReturn, getPlacesForProject } from "@/app/actions";
-import { toDateInputValue } from "@/lib/dates";
+import { addDays, toDateInputValue } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
 import { IconAlert, IconPlus } from "@/components/icons";
 
@@ -58,7 +58,7 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
         <p className="text-13 font-medium text-fg-muted">
           {noCheckpoints
             ? "Проверки не планируем — напоминаний не будет"
-            : "Три проверки создадутся автоматически"}
+            : "Проверка запланируется через 3 дня"}
         </p>
       </div>
 
@@ -223,10 +223,13 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
 
       {!noCheckpoints && (
         <label className="flex flex-col gap-1.5">
-          <span className={label}>
-            {F.customCheckDate.label} <span className={optional}>{F.customCheckDate.optional}</span>
-          </span>
-          <input type="date" name="customCheckDate" className="field w-auto self-start" />
+          <span className={label}>{F.customCheckDate.label}</span>
+          <input
+            type="date"
+            name="customCheckDate"
+            defaultValue={toDateInputValue(addDays(new Date(), 3))}
+            className="field w-auto self-start"
+          />
           <span className="hint">{F.customCheckDate.hint}</span>
         </label>
       )}
@@ -243,7 +246,7 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
         <p className="hint" title={COPY.tooltips.checkpoints}>
           {noCheckpoints
             ? "Правка попадёт в дневник без проверок — вернуться к ней можно вручную."
-            : "Проверим через сутки, через неделю и через месяц после даты правки."}
+            : "При необходимости позже можно добавить ещё проверки вручную — сутки, неделю, месяц или свою дату."}
         </p>
       </div>
     </form>
