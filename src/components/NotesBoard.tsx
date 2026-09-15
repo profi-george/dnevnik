@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import NoteCard from "@/components/NoteCard";
 import NoteComposer from "@/components/NoteComposer";
 import { COPY } from "@/lib/microcopy";
@@ -30,7 +31,9 @@ function Grid({ notes }: { notes: Note[] }) {
 }
 
 export default function NotesBoard({ notes }: { notes: Note[] }) {
-  const [q, setQ] = useState("");
+  // Открытие с /search?q=… должно сразу отфильтровать доску тем же запросом.
+  const searchParams = useSearchParams();
+  const [q, setQ] = useState(() => searchParams.get("q") ?? "");
 
   const filtered = useMemo(() => (q.trim() ? notes.filter((n) => matches(n, q)) : notes), [notes, q]);
   const pinned = filtered.filter((n) => n.pinned);

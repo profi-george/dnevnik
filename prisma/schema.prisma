@@ -54,6 +54,7 @@ model Project {
   goals     ProjectGoal[]
   risks     ProjectRisk[]
   passwords ProjectPassword[]
+  planItems ProjectPlanItem[]
 }
 
 // Важные ссылки проекта — клиентский отчёт, визуализация и т.д.
@@ -99,6 +100,19 @@ model ProjectPassword {
   label     String // например «Яндекс.Директ», «Метрика»
   value     String
   order     Int     @default(0)
+}
+
+// План — ближайшие шаги по проекту, в отличие от Карты целей и Истории это то,
+// что ещё предстоит сделать, а не то, что уже определено или уже произошло.
+model ProjectPlanItem {
+  id        String    @id @default(cuid())
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  text      String
+  done      Boolean   @default(false)
+  dueDate   DateTime? // необязательный срок
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
 }
 
 model Action {

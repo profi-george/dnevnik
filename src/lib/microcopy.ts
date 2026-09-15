@@ -201,6 +201,16 @@ export const COPY = {
     },
   },
 
+  planSection: {
+    title: "План",
+    hint: "Ближайшие шаги по проекту — что ещё предстоит сделать, а не то, что уже решено или произошло",
+  },
+
+  planFields: {
+    text: { label: "Шаг", placeholder: "Протестировать новый оффер на посадочной" },
+    dueDate: { label: "Срок", optional: "— можно позже" },
+  },
+
   riskSection: {
     title: "Риски",
     hint: "Что регулярно проверять по проекту, чтобы не пропустить проблему — со ссылкой и частотой",
@@ -267,6 +277,7 @@ export const COPY = {
     pinNote: "Закрепить",
     unpinNote: "Открепить",
     addRisk: "Добавить риск",
+    addPlanItem: "Добавить шаг",
     addPassword: "Добавить",
     showPassword: "Показать",
     hidePassword: "Скрыть",

@@ -10,6 +10,7 @@ import ProjectLinksEditor from "@/components/ProjectLinksEditor";
 import ProjectGoalsTable from "@/components/ProjectGoalsTable";
 import ProjectRisksTable from "@/components/ProjectRisksTable";
 import ProjectPasswordsEditor from "@/components/ProjectPasswordsEditor";
+import ProjectPlanList from "@/components/ProjectPlanList";
 import ProjectTabs from "@/components/ProjectTabs";
 
 type Props = {
@@ -19,16 +20,20 @@ type Props = {
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params;
 
-  const project = await prisma.project.findUnique({
-    where: { id },
-    include: {
-      _count: { select: { actions: true } },
-      links: { orderBy: { order: "asc" } },
-      goals: { orderBy: { order: "asc" } },
-      risks: { orderBy: { order: "asc" } },
-      passwords: { orderBy: { order: "asc" } },
-    },
-  });
+  const [project, allProjects] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { actions: true } },
+        links: { orderBy: { order: "asc" } },
+        goals: { orderBy: { order: "asc" } },
+        risks: { orderBy: { order: "asc" } },
+        passwords: { orderBy: { order: "asc" } },
+        planItems: { orderBy: [{ done: "asc" }, { order: "asc" }] },
+      },
+    }),
+    prisma.project.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, name: true } }),
+  ]);
 
   if (!project) notFound();
 
@@ -51,8 +56,28 @@ export default async function ProjectDetailPage({ params }: Props) {
         </Link>
       </div>
 
+      {allProjects.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {allProjects.map((p) => (
+            <Link
+              key={p.id}
+              href={`/projects/${p.id}`}
+              aria-current={p.id === project.id ? "page" : undefined}
+              className={`pill ${p.id === project.id ? "pill-active" : ""}`}
+            >
+              {p.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       <ProjectTabs
         tabs={[
+          {
+            id: "plan",
+            label: "План",
+            content: <ProjectPlanList projectId={project.id} items={project.planItems} />,
+          },
           { id: "info", label: "Вводные", content: <ProjectInfoForm project={project} /> },
           {
             id: "links",

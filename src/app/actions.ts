@@ -17,8 +17,9 @@ import type { Prisma } from "@/generated/prisma/client";
 export async function createProject(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
-  await prisma.project.create({ data: { name } });
+  const project = await prisma.project.create({ data: { name } });
   revalidatePath("/projects");
+  redirect(`/projects/${project.id}`);
 }
 
 // Быстрое создание проекта прямо из формы добавления действия — без ухода со страницы.
@@ -649,6 +650,71 @@ export async function deleteProjectPassword(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!id) return { ok: false, error: "Не передан id записи." };
   await prisma.projectPassword.delete({ where: { id } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+// ——— План проекта — ближайшие шаги, каждый можно отметить сделанным ———
+
+export async function createProjectPlanItem(formData: FormData) {
+  const projectId = String(formData.get("projectId") ?? "");
+  const text = String(formData.get("text") ?? "").trim();
+  if (!projectId || !text) return;
+
+  const dueDateValue = String(formData.get("dueDate") ?? "").trim();
+  const count = await prisma.projectPlanItem.count({ where: { projectId } });
+  await prisma.projectPlanItem.create({
+    data: {
+      projectId,
+      text,
+      dueDate: dueDateValue ? parseDateInput(dueDateValue) : null,
+      order: count,
+    },
+  });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function togglePlanItemDone(
+  id: string,
+  projectId: string,
+  done: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: COPY.errors.cellSaveFailed };
+  await prisma.projectPlanItem.update({ where: { id }, data: { done } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+const PLAN_ITEM_FIELDS = ["text", "dueDate"] as const;
+type PlanItemField = (typeof PLAN_ITEM_FIELDS)[number];
+
+export async function updateProjectPlanItemField(
+  id: string,
+  projectId: string,
+  field: PlanItemField,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id || !PLAN_ITEM_FIELDS.includes(field)) return { ok: false, error: COPY.errors.cellSaveFailed };
+  const trimmed = value.trim();
+  if (field === "text") {
+    if (!trimmed) return { ok: false, error: "Шаг не может быть пустым." };
+    await prisma.projectPlanItem.update({ where: { id }, data: { text: trimmed } });
+  } else {
+    await prisma.projectPlanItem.update({
+      where: { id },
+      data: { dueDate: trimmed ? parseDateInput(trimmed) : null },
+    });
+  }
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+export async function deleteProjectPlanItem(
+  id: string,
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id записи." };
+  await prisma.projectPlanItem.delete({ where: { id } });
   revalidatePath(`/projects/${projectId}`);
   return { ok: true };
 }

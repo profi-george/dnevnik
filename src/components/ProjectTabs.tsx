@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ProjectEditProvider, useProjectEditToggle } from "@/components/ProjectEditContext";
 import ProjectAIFill from "@/components/ProjectAIFill";
 import { IconCheck, IconPencil } from "@/components/icons";
@@ -46,7 +47,13 @@ function TabBar({ tabs, active, onSelect }: { tabs: Tab[]; active: string; onSel
 }
 
 export default function ProjectTabs({ tabs, projectId }: { tabs: Tab[]; projectId: string }) {
-  const [active, setActive] = useState(tabs[0]?.id ?? "");
+  // Ссылка вида /projects/id?tab=risks (например из поиска) должна открывать
+  // сразу нужную вкладку, а не всегда первую.
+  const searchParams = useSearchParams();
+  const [active, setActive] = useState(() => {
+    const fromUrl = searchParams.get("tab");
+    return fromUrl && tabs.some((t) => t.id === fromUrl) ? fromUrl : (tabs[0]?.id ?? "");
+  });
 
   return (
     <ProjectEditProvider>

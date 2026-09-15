@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { startOfToday } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
 import AppNav from "@/components/AppNav";
-import { IconPlus } from "@/components/icons";
+import { IconPlus, IconSearch } from "@/components/icons";
 
 // Личные данные меняются каждую минуту — незачем и нельзя кэшировать эти страницы
 // при сборке (на Vercel билд-машина ещё не видит боевую базу так, как рантайм).
@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         className="sticky top-0 z-30 flex items-center justify-between gap-6 border-b border-line bg-surface px-4"
         style={{ height: "var(--header-h)" }}
       >
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4 overflow-x-auto">
           <Link href="/diary" className="flex shrink-0 items-center gap-2">
             <span
               aria-hidden
@@ -52,10 +52,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <AppNav items={nav} />
         </div>
 
-        <Link href="/diary/bulk" className="btn btn-primary shrink-0">
-          <IconPlus className="h-3.5 w-3.5" />
-          {COPY.cta.addActionShort}
-        </Link>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Link
+            href="/search"
+            title="Поиск по всему"
+            aria-label="Поиск по всему"
+            className="btn-icon h-8 w-8"
+          >
+            <IconSearch className="h-3.5 w-3.5" />
+          </Link>
+          <Link href="/diary/bulk" className="btn btn-primary shrink-0">
+            <IconPlus className="h-3.5 w-3.5" />
+            {COPY.cta.addActionShort}
+          </Link>
+        </div>
       </header>
 
       <main className="w-full flex-1 px-4 py-5">{children}</main>
