@@ -7,7 +7,7 @@ import { IconArrowRight, IconPlus } from "@/components/icons";
 
 export default async function ProjectsPage() {
   const projects = await prisma.project.findMany({
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
     include: { _count: { select: { actions: true } } },
   });
 
