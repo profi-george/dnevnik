@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { parseProjectInfoWithAI, applyParsedProjectInfo } from "@/app/actions";
 import { COPY } from "@/lib/microcopy";
-import type { ParsedProjectInfo } from "@/lib/gemini";
+import type { ParsedProjectInfo, AIFillSection } from "@/lib/gemini";
 import { IconAlert, IconCheck, IconSparkles, IconTrash, IconX, Spinner } from "@/components/icons";
 
 const INFO_FIELDS = [
@@ -24,6 +24,93 @@ const INFO_FIELDS = [
 ] as const;
 
 type InfoKey = (typeof INFO_FIELDS)[number][0];
+
+const WIDE_INFO_KEYS: InfoKey[] = [
+  "topic",
+  "site",
+  "budget",
+  "regions",
+  "priorities",
+  "businessGoals",
+  "qualifiedLeadParams",
+  "clientWishes",
+  "constraints",
+  "directLogin",
+];
+
+// Заголовок вкладки в формулировках «заполнить ЧТО» — используется и в кнопке,
+// и в плейсхолдере textarea, чтобы разбор явно целился в открытый раздел.
+const SECTION_TITLE: Record<AIFillSection, string> = {
+  plan: "план",
+  info: "вводные",
+  links: "важные ссылки",
+  history: "историю",
+  problems: "проблемы",
+  questions: "вопросы",
+  goals: "карту целей",
+  risks: "риски",
+  passwords: "пароли",
+};
+
+const SECTION_PLACEHOLDER: Record<AIFillSection, string> = {
+  plan: "Ближайшие шаги по проекту — что нужно сделать, к какому сроку…",
+  info: "Тематика, сайт, бюджет, регионы, приоритеты, бизнес-цели, логин в Директе…",
+  links: "Ссылки на отчёты, документы, визуализации с понятными названиями…",
+  history: "Вехи, решения, тесты, результаты — крупными мазками…",
+  problems: "Текущие нерешённые проблемы, в порядке приоритета…",
+  questions: "Вопросы к анализу, на которые пока нет ответа…",
+  goals: "ID и названия целей Метрики/Директа, макро или микро…",
+  risks: "Что регулярно проверять, ссылка на кампанию, как часто…",
+  passwords: "Логины и пароли от сервисов клиента…",
+};
+
+function isAIFillSection(id: string): id is AIFillSection {
+  return id in SECTION_TITLE;
+}
+
+const EMPTY_DATA: ParsedProjectInfo = { info: {}, links: [], goals: [], risks: [], passwords: [], plan: [] };
+
+// Открытая вкладка задаёт, куда именно целится разбор: «Вставили текст на Рисках —
+// заполняем риски», а не расползаемся по всей карточке сразу.
+function scopeToSection(data: ParsedProjectInfo, section: AIFillSection): ParsedProjectInfo {
+  switch (section) {
+    case "plan":
+      return { ...EMPTY_DATA, plan: data.plan ?? [] };
+    case "links":
+      return { ...EMPTY_DATA, links: data.links ?? [] };
+    case "goals":
+      return { ...EMPTY_DATA, goals: data.goals ?? [] };
+    case "risks":
+      return { ...EMPTY_DATA, risks: data.risks ?? [] };
+    case "passwords":
+      return { ...EMPTY_DATA, passwords: data.passwords ?? [] };
+    case "history":
+      return { ...EMPTY_DATA, info: data.info?.history ? { history: data.info.history } : {} };
+    case "problems":
+      return { ...EMPTY_DATA, info: data.info?.problems ? { problems: data.info.problems } : {} };
+    case "questions":
+      return { ...EMPTY_DATA, info: data.info?.questions ? { questions: data.info.questions } : {} };
+    case "info": {
+      const info: ParsedProjectInfo["info"] = {};
+      for (const key of WIDE_INFO_KEYS) {
+        const value = data.info?.[key];
+        if (value) info[key] = value;
+      }
+      return { ...EMPTY_DATA, info };
+    }
+  }
+}
+
+function isScopedDataEmpty(data: ParsedProjectInfo): boolean {
+  return (
+    Object.values(data.info ?? {}).every((v) => !v?.trim()) &&
+    data.links.length === 0 &&
+    data.goals.length === 0 &&
+    data.risks.length === 0 &&
+    data.passwords.length === 0 &&
+    data.plan.length === 0
+  );
+}
 
 /**
  * Один раздел предпросмотра. Раньше разделы отличались только волосяной чертой
@@ -79,8 +166,9 @@ function ReviewRow({
   );
 }
 
-export default function ProjectAIFill({ projectId }: { projectId: string }) {
+export default function ProjectAIFill({ projectId, activeTab }: { projectId: string; activeTab: string }) {
   const router = useRouter();
+  const section = isAIFillSection(activeTab) ? activeTab : undefined;
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"input" | "review">("input");
   const [rawText, setRawText] = useState("");
@@ -111,13 +199,22 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
     setError(null);
     setParsing(true);
     startTransition(async () => {
-      const result = await parseProjectInfoWithAI(rawText);
+      const result = await parseProjectInfoWithAI(rawText, section);
       setParsing(false);
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setData(result.data);
+      const scoped = section ? scopeToSection(result.data, section) : result.data;
+      if (isScopedDataEmpty(scoped)) {
+        setError(
+          section
+            ? `ИИ не нашёл в тексте данных для раздела «${SECTION_TITLE[section]}» — опишите подробнее или впишите вручную.`
+            : "Не удалось найти в тексте данных для карточки проекта.",
+        );
+        return;
+      }
+      setData(scoped);
       setStep("review");
     });
   }
@@ -137,6 +234,9 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
   }
   function removePassword(i: number) {
     setData((prev) => (prev ? { ...prev, passwords: prev.passwords.filter((_, idx) => idx !== i) } : prev));
+  }
+  function removePlanItem(i: number) {
+    setData((prev) => (prev ? { ...prev, plan: prev.plan.filter((_, idx) => idx !== i) } : prev));
   }
 
   function apply() {
@@ -166,7 +266,7 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
     return (
       <button type="button" onClick={() => setOpen(true)} className="btn btn-secondary shrink-0">
         <IconSparkles className="h-3.5 w-3.5" />
-        {COPY.cta.fillWithAI}
+        {section ? `Заполнить ${SECTION_TITLE[section]} через ИИ` : COPY.cta.fillWithAI}
       </button>
     );
   }
@@ -177,15 +277,15 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
         <div className="flex flex-col gap-1">
           <h2 className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-fg">
             <IconSparkles className="h-4 w-4 text-ink-600" />
-            {COPY.cta.fillWithAI}
+            {section ? `Заполнить ${SECTION_TITLE[section]} через ИИ` : COPY.cta.fillWithAI}
           </h2>
           {/* Инструкция про «вставьте текст» на шаге предпросмотра уже не помогает,
               а место занимает — показываем её только там, где она нужна */}
           {step === "input" ? (
             <p className="hint">
-              Вставьте один кусок текста с любой информацией о проекте — бриф, переписку, заметки. ИИ
-              сам разложит её по вводным, ссылкам, целям, рискам и паролям. Перед сохранением всё
-              можно поправить.
+              {section
+                ? `Вставьте текст — ИИ разберёт его и заполнит раздел «${SECTION_TITLE[section]}». Перед сохранением всё можно поправить.`
+                : "Вставьте один кусок текста с любой информацией о проекте — бриф, переписку, заметки. ИИ сам разложит её по вводным, ссылкам, целям, рискам и паролям. Перед сохранением всё можно поправить."}
             </p>
           ) : (
             <p className="hint">Проверьте, что разобралось. Лишнее — удалите, неточное — поправьте.</p>
@@ -203,7 +303,11 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
             onChange={(e) => setRawText(e.target.value)}
             rows={10}
             disabled={parsing}
-            placeholder="Тематика, бюджет, регионы, цели, ссылки на отчёты, риски для проверки, логины…"
+            placeholder={
+              section
+                ? SECTION_PLACEHOLDER[section]
+                : "Тематика, бюджет, регионы, цели, ссылки на отчёты, риски для проверки, логины…"
+            }
             className="field"
           />
 
@@ -240,10 +344,10 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
 
       {step === "review" && data && (
         <>
-          <ReviewSection title="Вводные и разделы" count={filledInfo.length}>
-            {filledInfo.length > 0 ? (
-              // Две колонки на широком экране: тринадцать полей в один столбец
-              // давали экран прокрутки ещё до списков ссылок и целей
+          {filledInfo.length > 0 && (
+            <ReviewSection title="Вводные и разделы" count={filledInfo.length}>
+              {/* Две колонки на широком экране: тринадцать полей в один столбец
+                  давали экран прокрутки ещё до списков ссылок и целей */}
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {filledInfo.map(([key, label]) => (
                   <label key={key} className="flex min-w-0 flex-col gap-1">
@@ -257,10 +361,23 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
                   </label>
                 ))}
               </div>
-            ) : (
-              <p className="text-13 text-fg-subtle">Ничего не найдено в тексте.</p>
-            )}
-          </ReviewSection>
+            </ReviewSection>
+          )}
+
+          {data.plan.length > 0 && (
+            <ReviewSection title="План" count={data.plan.length}>
+              <ul className="flex flex-col divide-y divide-line-soft">
+                {data.plan.map((p, i) => (
+                  <ReviewRow
+                    key={i}
+                    text={p.dueDate ? `${p.text} — до ${p.dueDate}` : p.text}
+                    removeLabel={`Убрать шаг «${p.text}»`}
+                    onRemove={() => removePlanItem(i)}
+                  />
+                ))}
+              </ul>
+            </ReviewSection>
+          )}
 
           {data.links.length > 0 && (
             <ReviewSection title="Важные ссылки" count={data.links.length}>

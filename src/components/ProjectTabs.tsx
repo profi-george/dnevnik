@@ -61,7 +61,7 @@ export default function ProjectTabs({ tabs, projectId }: { tabs: Tab[]; projectI
         <div className="flex flex-wrap items-center gap-2">
           <EditToggle />
           <TabBar tabs={tabs} active={active} onSelect={setActive} />
-          <ProjectAIFill projectId={projectId} />
+          <ProjectAIFill projectId={projectId} activeTab={active} />
         </div>
         {tabs.map((tab) => (
           <div key={tab.id} hidden={active !== tab.id} className="flex flex-col gap-4">

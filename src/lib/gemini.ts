@@ -238,7 +238,24 @@ export type ParsedProjectInfo = {
   goals: { goalId: string; name: string; level: string; description: string; validDatesNote: string }[];
   risks: { risk: string; url: string; frequency: string }[];
   passwords: { label: string; value: string }[];
+  plan: { text: string; dueDate: string }[];
 };
+
+// Соответствие вкладки карточки проекта разделу разбора — нужно, чтобы «Заполнить
+// через ИИ», открытая на конкретной вкладке, целилась именно в неё, а не во всё сразу.
+export const AI_FILL_SECTIONS = {
+  plan: "план — ближайшие шаги по проекту",
+  info: "вводные — тематика, сайт, бюджет, регионы, приоритеты, бизнес-цели, параметры лидов, пожелания клиента, ограничения, логин в Директе",
+  links: "важные ссылки",
+  history: "историю проекта",
+  problems: "текущие нерешённые проблемы",
+  questions: "вопросы к анализу",
+  goals: "карту целей",
+  risks: "риски — что регулярно проверять",
+  passwords: "пароли и логины",
+} as const;
+
+export type AIFillSection = keyof typeof AI_FILL_SECTIONS;
 
 const PROJECT_INFO_RESPONSE_SCHEMA = {
   type: "object",
@@ -299,8 +316,16 @@ const PROJECT_INFO_RESPONSE_SCHEMA = {
         required: ["label", "value"],
       },
     },
+    plan: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { text: { type: "string" }, dueDate: { type: "string" } },
+        required: ["text"],
+      },
+    },
   },
-  required: ["info", "links", "goals", "risks", "passwords"],
+  required: ["info", "links", "goals", "risks", "passwords", "plan"],
 };
 
 const PROJECT_INFO_SYSTEM_INSTRUCTION = `
@@ -341,6 +366,10 @@ const PROJECT_INFO_SYSTEM_INSTRUCTION = `
 например «Яндекс.Директ: login / pass». label — понятное название сервиса, value — сами
 логин/пароль как есть в тексте.
 
+Вкладка «План» (plan) — массив {text, dueDate}: конкретные ближайшие шаги, которые ещё
+предстоит сделать по проекту (не то, что уже сделано или произошло). dueDate — срок в
+формате YYYY-MM-DD, только если в тексте явно назван; если срока нет — оставь пустым.
+
 Правила:
 - Ничего не придумывай сверх того, что есть в тексте.
 - Если в тексте вообще нет данных ни для одного поля/раздела — верни все поля пустыми и
@@ -349,8 +378,12 @@ const PROJECT_INFO_SYSTEM_INSTRUCTION = `
 
 export async function parseProjectInfoFromText(
   rawText: string,
+  focusSection?: AIFillSection,
 ): Promise<{ ok: true; data: ParsedProjectInfo } | { ok: false; error: string }> {
-  const result = await callGeminiRaw(PROJECT_INFO_SYSTEM_INSTRUCTION, rawText, PROJECT_INFO_RESPONSE_SCHEMA);
+  const instruction = focusSection
+    ? `${PROJECT_INFO_SYSTEM_INSTRUCTION}\n\nСейчас пользователь открыла вкладку «${AI_FILL_SECTIONS[focusSection]}» и вставляет текст именно для неё. Заполняй в первую очередь этот раздел; остальные разделы и поля заполняй, только если в тексте есть однозначно относящиеся к ним данные — не старайся охватить всё подряд.`
+    : PROJECT_INFO_SYSTEM_INSTRUCTION;
+  const result = await callGeminiRaw(instruction, rawText, PROJECT_INFO_RESPONSE_SCHEMA);
   if (!result.ok) return result;
   const data = result.json as ParsedProjectInfo;
   const hasAnyInfo = data.info && Object.values(data.info).some((v) => v?.trim());
@@ -358,7 +391,8 @@ export async function parseProjectInfoFromText(
     (data.links?.length ?? 0) > 0 ||
     (data.goals?.length ?? 0) > 0 ||
     (data.risks?.length ?? 0) > 0 ||
-    (data.passwords?.length ?? 0) > 0;
+    (data.passwords?.length ?? 0) > 0 ||
+    (data.plan?.length ?? 0) > 0;
   if (!hasAnyInfo && !hasAnyList) {
     return { ok: false, error: "Не удалось найти в тексте данных для карточки проекта." };
   }

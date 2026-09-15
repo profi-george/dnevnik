@@ -11,6 +11,7 @@ import {
   parseProjectInfoFromText,
   type ParsedAction,
   type ParsedProjectInfo,
+  type AIFillSection,
 } from "@/lib/gemini";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -723,8 +724,9 @@ export async function deleteProjectPlanItem(
 
 export async function parseProjectInfoWithAI(
   rawText: string,
+  focusSection?: AIFillSection,
 ): Promise<{ ok: true; data: ParsedProjectInfo } | { ok: false; error: string }> {
-  return parseProjectInfoFromText(rawText);
+  return parseProjectInfoFromText(rawText, focusSection);
 }
 
 export async function applyParsedProjectInfo(
@@ -798,6 +800,22 @@ export async function applyParsedProjectInfo(
     ops.push(
       prisma.projectPassword.create({
         data: { projectId, label: p.label.trim(), value: p.value.trim(), order: passwordCountBase + i },
+      }),
+    );
+  });
+
+  const planItems = (data.plan ?? []).filter((p) => p.text?.trim());
+  const planCountBase = await prisma.projectPlanItem.count({ where: { projectId } });
+  planItems.forEach((p, i) => {
+    const dueDate = p.dueDate?.trim();
+    ops.push(
+      prisma.projectPlanItem.create({
+        data: {
+          projectId,
+          text: p.text.trim(),
+          dueDate: dueDate ? parseDateInput(dueDate) : null,
+          order: planCountBase + i,
+        },
       }),
     );
   });
