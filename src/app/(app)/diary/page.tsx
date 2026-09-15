@@ -7,6 +7,7 @@ import ReportUrlCell from "@/components/ReportUrlCell";
 import ProjectCell from "@/components/ProjectCell";
 import DeleteActionButton from "@/components/DeleteActionButton";
 import AddCheckpointControl from "@/components/AddCheckpointControl";
+import ResizableTable, { type ResizableColumn } from "@/components/ResizableTable";
 import { deleteAction } from "@/app/actions";
 import { COPY, actionWord } from "@/lib/microcopy";
 import { IconArrowRight, IconSearch, IconX } from "@/components/icons";
@@ -95,6 +96,18 @@ export default async function DiaryPage({ searchParams }: Props) {
     const qs = params.toString();
     return qs ? `/diary?${qs}` : "/diary";
   }
+
+  const DIARY_COLUMNS: ResizableColumn[] = [
+    { key: "date", label: "Дата правки", width: 100 },
+    { key: "project", label: "Проект", width: 100 },
+    { key: "place", label: "Где именно", title: COPY.tooltips.place, width: 150 },
+    { key: "description", label: "Что изменили", width: 200 },
+    { key: "justification", label: "Почему так решили", title: COPY.tooltips.justification, width: 150 },
+    { key: "reportUrl", label: "Отчёт", title: COPY.tooltips.reportUrl, width: 60, minWidth: 44 },
+    { key: "checkpoints", label: "Проверки", title: COPY.tooltips.checkpoints, width: 290, minWidth: 160 },
+    { key: "note", label: "Заметка", width: 150 },
+    { key: "delete", label: "Удалить", hiddenLabel: true, width: 40, minWidth: 40 },
+  ];
 
   const activeFilters: { label: string; clearHref: string }[] = [];
   if (q) {
@@ -259,31 +272,7 @@ export default async function DiaryPage({ searchParams }: Props) {
       {/* На широком экране overflow-x-clip (с auto шапка таблицы перестаёт «липнуть»),
           на узком — горизонтальная прокрутка, чтобы колонки не сминались. */}
       <div className="card overflow-x-clip max-xl:overflow-x-auto">
-        <table className="tbl table-fixed min-w-[76rem]">
-          <colgroup>
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "16%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "5%" }} />
-            <col style={{ width: "24%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "3%" }} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>Дата правки</th>
-              <th>Проект</th>
-              <th title={COPY.tooltips.place}>Где именно</th>
-              <th>Что изменили</th>
-              <th title={COPY.tooltips.justification}>Почему так решили</th>
-              <th title={COPY.tooltips.reportUrl}>Отчёт</th>
-              <th title={COPY.tooltips.checkpoints}>Проверки</th>
-              <th>Заметка</th>
-              <th aria-hidden></th>
-            </tr>
-          </thead>
+        <ResizableTable storageKey="diary-table-col-widths" columns={DIARY_COLUMNS}>
           <tbody>
             {actions.map((action) => (
               <tr key={action.id} className="group">
@@ -387,7 +376,7 @@ export default async function DiaryPage({ searchParams }: Props) {
               </tr>
             )}
           </tbody>
-        </table>
+        </ResizableTable>
       </div>
     </div>
   );
