@@ -27,8 +27,12 @@ export default function BulkAddForm({
   const [rawText, setRawText] = useState(initialText ?? "");
   const [savedCount, setSavedCount] = useState(0);
   const [projectList, setProjectList] = useState(initialProjects);
+  // Раньше сравнение было чувствительно к регистру и при несовпадении молча
+  // откатывалось на первый проект в списке — правка могла уйти не тому клиенту.
+  // Теперь: точное совпадение по имени без учёта регистра, а если такого проекта
+  // нет вовсе — не выбираем ничего, форма и так не даст продолжить без выбора.
   const [projectId, setProjectId] = useState(
-    initialProjects.find((p) => p.name === DEFAULT_PROJECT_NAME)?.id ?? initialProjects[0]?.id ?? "",
+    initialProjects.find((p) => p.name.toLowerCase() === DEFAULT_PROJECT_NAME.toLowerCase())?.id ?? "",
   );
   const [addingProject, setAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
