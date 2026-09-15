@@ -120,7 +120,9 @@ export default function PasswordRow({ id, projectId, label, value }: Password & 
             placeholder={F.label.placeholder}
           />
         ) : (
-          <span className="text-13 font-medium text-fg">{label}</span>
+          // Та же .cell, что и в режиме правки, — иначе название и значение
+          // разъезжались по вертикали на паддинг ячейки при переключении режима
+          <span className="cell cell-readonly font-medium">{label}</span>
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -133,7 +135,7 @@ export default function PasswordRow({ id, projectId, label, value }: Password & 
             placeholder={F.value.placeholder}
           />
         ) : (
-          <span className="cell font-mono">
+          <span className={`cell cell-readonly font-mono ${value ? "" : "cell-empty"}`}>
             {value ? (revealed ? value : "•".repeat(Math.min(value.length, 16))) : "—"}
           </span>
         )}

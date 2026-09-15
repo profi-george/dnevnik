@@ -201,10 +201,20 @@ export const COPY = {
     },
   },
 
+  riskSection: {
+    title: "Риски",
+    hint: "Что регулярно проверять по проекту, чтобы не пропустить проблему — со ссылкой и частотой",
+  },
+
   riskFields: {
     risk: { label: "Риск", placeholder: "Поисковые запросы по фидам GCL" },
     url: { label: "Ссылка", placeholder: "https://direct.yandex.ru/…" },
     frequency: { label: "Как часто", placeholder: "1 р/день" },
+  },
+
+  passwordSection: {
+    title: "Пароли",
+    hint: "Логины и доступы к сервисам этого клиента — под рукой, без переписки каждый раз",
   },
 
   passwordFields: {

@@ -121,6 +121,22 @@ export function IconArrowRight(props: IconProps) {
   );
 }
 
+export function IconChevronDown(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </Svg>
+  );
+}
+
+export function IconFilter(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 5h18l-7 8v6l-4 2v-8Z" />
+    </Svg>
+  );
+}
+
 export function IconSparkles(props: IconProps) {
   return (
     <Svg {...props}>

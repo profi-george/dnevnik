@@ -16,23 +16,33 @@ export default function ProjectRisksTable({ projectId, risks }: { projectId: str
 
   return (
     <div className="card flex flex-col gap-3 p-5">
-      <h2 className="text-base font-semibold tracking-tight text-fg">Риски</h2>
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-base font-semibold tracking-tight text-fg">{COPY.riskSection.title}</h2>
+        <p className="hint">{COPY.riskSection.hint}</p>
+      </div>
 
       {risks.length > 0 ? (
         <div className="overflow-x-clip rounded-md border border-line max-xl:overflow-x-auto">
           <table className="tbl table-fixed min-w-[36rem]">
+            {/* Проценты в сумме дают ровно 100 — раньше в режиме правки выходило
+                105% и колонки поджимались непредсказуемо. Столбец с корзиной —
+                фиксированные 2.5rem, он не должен тянуться вместе с текстом. */}
             <colgroup>
               <col style={{ width: "45%" }} />
               <col style={{ width: "35%" }} />
               <col style={{ width: "20%" }} />
-              {editing && <col style={{ width: "5%" }} />}
+              {editing && <col style={{ width: "2.5rem" }} />}
             </colgroup>
             <thead>
               <tr>
                 <th>{F.risk.label}</th>
                 <th>{F.url.label}</th>
                 <th>{F.frequency.label}</th>
-                {editing && <th aria-hidden></th>}
+                {editing && (
+                  <th>
+                    <span className="sr-only">Удалить риск</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -68,7 +78,7 @@ export default function ProjectRisksTable({ projectId, risks }: { projectId: str
                         <span className="truncate">{risk.url}</span>
                       </a>
                     ) : (
-                      <span className="cell cell-empty">—</span>
+                      <span className="cell cell-readonly cell-empty">—</span>
                     )}
                   </td>
                   <td>

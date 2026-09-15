@@ -51,7 +51,13 @@ export default function RiskCell({ id, projectId, field, value, placeholder, rea
   );
 
   if (readOnly) {
-    return <span className={`cell ${value ? "" : "cell-empty"}`}>{value || placeholder || "—"}</span>;
+    // Вне режима правки ячейка сохраняет сетку, но не притворяется кликабельной:
+    // без cell-readonly она подсвечивалась под курсором и обещала правку.
+    return (
+      <span className={`cell cell-readonly ${value ? "" : "cell-empty"}`}>
+        {value || placeholder || "—"}
+      </span>
+    );
   }
 
   if (editing) {

@@ -53,7 +53,13 @@ export default function GoalCell({ id, projectId, field, value, placeholder, sel
 
   if (readOnly) {
     const text = select ? (select.find((o) => o.value === value)?.label ?? value) : value;
-    return <span className={`cell ${text ? "" : "cell-empty"}`}>{text || placeholder || "—"}</span>;
+    // cell-readonly убирает подсветку под курсором: вне режима правки клик ничего
+    // не делает, и обещать его не надо.
+    return (
+      <span className={`cell cell-readonly ${text ? "" : "cell-empty"}`}>
+        {text || placeholder || "—"}
+      </span>
+    );
   }
 
   if (select) {

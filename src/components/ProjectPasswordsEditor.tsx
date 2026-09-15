@@ -21,7 +21,10 @@ export default function ProjectPasswordsEditor({
 
   return (
     <div className="card flex flex-col gap-3 p-5">
-      <h2 className="text-base font-semibold tracking-tight text-fg">Пароли</h2>
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-base font-semibold tracking-tight text-fg">{COPY.passwordSection.title}</h2>
+        <p className="hint">{COPY.passwordSection.hint}</p>
+      </div>
 
       {passwords.length > 0 && (
         <ul className="flex flex-col divide-y divide-line-soft">

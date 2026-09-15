@@ -25,6 +25,60 @@ const INFO_FIELDS = [
 
 type InfoKey = (typeof INFO_FIELDS)[number][0];
 
+/**
+ * Один раздел предпросмотра. Раньше разделы отличались только волосяной чертой
+ * сверху, и длинная простыня читалась как один сплошной список. Подложка .panel
+ * даёт каждому разделу видимые границы, счётчик — сразу понятный объём.
+ */
+function ReviewSection({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="panel flex flex-col gap-1.5 p-3">
+      <h3 className="micro inline-flex items-center gap-1.5">
+        {title}
+        <span className="count">{count}</span>
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+/** Строка предпросмотра: текст с многоточием + тихая корзина справа. */
+function ReviewRow({
+  text,
+  removeLabel,
+  onRemove,
+}: {
+  text: string;
+  removeLabel: string;
+  onRemove: () => void;
+}) {
+  return (
+    <li className="flex items-center gap-2 py-1.5">
+      {/* title нужен обязательно: строка обрезается, а поправить её здесь нельзя */}
+      <span title={text} className="min-w-0 flex-1 truncate text-13 text-fg">
+        {text}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        title={removeLabel}
+        aria-label={removeLabel}
+        className="btn-icon btn-icon-danger shrink-0"
+      >
+        <IconTrash className="h-3.5 w-3.5" />
+      </button>
+    </li>
+  );
+}
+
 export default function ProjectAIFill({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -99,6 +153,8 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
     });
   }
 
+  const filledInfo = INFO_FIELDS.filter(([key]) => data?.info?.[key]?.trim());
+
   const errorLine = error && (
     <p className="inline-flex items-start gap-1.5 text-13 text-danger">
       <IconAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -123,11 +179,17 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
             <IconSparkles className="h-4 w-4 text-ink-600" />
             {COPY.cta.fillWithAI}
           </h2>
-          <p className="hint">
-            Вставьте один кусок текста с любой информацией о проекте — бриф, переписку, заметки. ИИ сам
-            разложит её по вводным, ссылкам, целям, рискам и паролям. Перед сохранением всё можно
-            поправить.
-          </p>
+          {/* Инструкция про «вставьте текст» на шаге предпросмотра уже не помогает,
+              а место занимает — показываем её только там, где она нужна */}
+          {step === "input" ? (
+            <p className="hint">
+              Вставьте один кусок текста с любой информацией о проекте — бриф, переписку, заметки. ИИ
+              сам разложит её по вводным, ссылкам, целям, рискам и паролям. Перед сохранением всё
+              можно поправить.
+            </p>
+          ) : (
+            <p className="hint">Проверьте, что разобралось. Лишнее — удалите, неточное — поправьте.</p>
+          )}
         </div>
         <button type="button" onClick={close} title="Закрыть" aria-label="Закрыть" className="btn-icon shrink-0">
           <IconX className="h-3.5 w-3.5" />
@@ -178,96 +240,93 @@ export default function ProjectAIFill({ projectId }: { projectId: string }) {
 
       {step === "review" && data && (
         <>
-          <div className="flex flex-col gap-3">
-            <h3 className="micro">Вводные и разделы</h3>
-            <div className="flex flex-col gap-3">
-              {INFO_FIELDS.filter(([key]) => data.info?.[key]?.trim()).map(([key, label]) => (
-                <label key={key} className="flex flex-col gap-1">
-                  <span className="text-13 font-medium text-fg">{label}</span>
-                  <input
-                    type="text"
-                    value={data.info?.[key] ?? ""}
-                    onChange={(e) => setInfoField(key, e.target.value)}
-                    className="field"
-                  />
-                </label>
-              ))}
-              {INFO_FIELDS.every(([key]) => !data.info?.[key]?.trim()) && (
-                <p className="text-13 text-fg-subtle">Ничего не найдено в тексте.</p>
-              )}
-            </div>
-          </div>
+          <ReviewSection title="Вводные и разделы" count={filledInfo.length}>
+            {filledInfo.length > 0 ? (
+              // Две колонки на широком экране: тринадцать полей в один столбец
+              // давали экран прокрутки ещё до списков ссылок и целей
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {filledInfo.map(([key, label]) => (
+                  <label key={key} className="flex min-w-0 flex-col gap-1">
+                    <span className="micro">{label}</span>
+                    <input
+                      type="text"
+                      value={data.info?.[key] ?? ""}
+                      onChange={(e) => setInfoField(key, e.target.value)}
+                      className="field"
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-13 text-fg-subtle">Ничего не найдено в тексте.</p>
+            )}
+          </ReviewSection>
 
           {data.links.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-line-soft pt-4">
-              <h3 className="micro">Важные ссылки ({data.links.length})</h3>
-              {data.links.map((l, i) => (
-                <div key={i} className="flex items-center gap-2 text-13">
-                  <span className="min-w-0 flex-1 truncate">
-                    {l.label} — <span className="text-fg-muted">{l.url}</span>
-                  </span>
-                  <button type="button" onClick={() => removeLink(i)} className="btn-icon btn-icon-danger shrink-0">
-                    <IconTrash className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ReviewSection title="Важные ссылки" count={data.links.length}>
+              <ul className="flex flex-col divide-y divide-line-soft">
+                {data.links.map((l, i) => (
+                  <ReviewRow
+                    key={i}
+                    text={`${l.label} — ${l.url}`}
+                    removeLabel={`Убрать ссылку «${l.label}»`}
+                    onRemove={() => removeLink(i)}
+                  />
+                ))}
+              </ul>
+            </ReviewSection>
           )}
 
           {data.goals.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-line-soft pt-4">
-              <h3 className="micro">Карта целей ({data.goals.length})</h3>
-              {data.goals.map((g, i) => (
-                <div key={i} className="flex items-center gap-2 text-13">
-                  <span className="min-w-0 flex-1 truncate">
-                    {g.goalId} · {g.name} · {g.level === "MICRO" ? "Микро" : "Макро"}
-                  </span>
-                  <button type="button" onClick={() => removeGoal(i)} className="btn-icon btn-icon-danger shrink-0">
-                    <IconTrash className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ReviewSection title="Карта целей" count={data.goals.length}>
+              <ul className="flex flex-col divide-y divide-line-soft">
+                {data.goals.map((g, i) => (
+                  <ReviewRow
+                    key={i}
+                    text={`${g.goalId} · ${g.name} · ${g.level === "MICRO" ? "Микро" : "Макро"}`}
+                    removeLabel={`Убрать цель «${g.name}»`}
+                    onRemove={() => removeGoal(i)}
+                  />
+                ))}
+              </ul>
+            </ReviewSection>
           )}
 
           {data.risks.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-line-soft pt-4">
-              <h3 className="micro">Риски ({data.risks.length})</h3>
-              {data.risks.map((r, i) => (
-                <div key={i} className="flex items-center gap-2 text-13">
-                  <span className="min-w-0 flex-1 truncate">
-                    {r.risk}
-                    {r.frequency ? ` — ${r.frequency}` : ""}
-                  </span>
-                  <button type="button" onClick={() => removeRisk(i)} className="btn-icon btn-icon-danger shrink-0">
-                    <IconTrash className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ReviewSection title="Риски" count={data.risks.length}>
+              <ul className="flex flex-col divide-y divide-line-soft">
+                {data.risks.map((r, i) => (
+                  <ReviewRow
+                    key={i}
+                    text={`${r.risk}${r.frequency ? ` — ${r.frequency}` : ""}`}
+                    removeLabel={`Убрать риск «${r.risk}»`}
+                    onRemove={() => removeRisk(i)}
+                  />
+                ))}
+              </ul>
+            </ReviewSection>
           )}
 
           {data.passwords.length > 0 && (
-            <div className="flex flex-col gap-2 border-t border-line-soft pt-4">
-              <h3 className="micro">Пароли ({data.passwords.length})</h3>
-              {data.passwords.map((p, i) => (
-                <div key={i} className="flex items-center gap-2 text-13">
-                  <span className="min-w-0 flex-1 truncate">{p.label}</span>
-                  <button
-                    type="button"
-                    onClick={() => removePassword(i)}
-                    className="btn-icon btn-icon-danger shrink-0"
-                  >
-                    <IconTrash className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ReviewSection title="Пароли" count={data.passwords.length}>
+              <ul className="flex flex-col divide-y divide-line-soft">
+                {data.passwords.map((p, i) => (
+                  <ReviewRow
+                    key={i}
+                    text={p.label}
+                    removeLabel={`Убрать пароль «${p.label}»`}
+                    onRemove={() => removePassword(i)}
+                  />
+                ))}
+              </ul>
+            </ReviewSection>
           )}
 
           {errorLine}
 
-          <div className="flex items-center gap-3 border-t border-line-soft pt-4">
+          {/* Панель действий липнет к низу экрана: предпросмотр бывает длиннее
+              вьюпорта, и «Применить» не должно уезжать за нижний край */}
+          <div className="sticky bottom-0 z-10 -mx-5 -mb-5 flex items-center gap-3 rounded-b-lg border-t border-line bg-surface px-5 py-3">
             <button type="button" onClick={apply} disabled={isPending} className="btn btn-primary">
               {isPending ? <Spinner className="h-3.5 w-3.5" /> : <IconCheck className="h-3.5 w-3.5" />}
               {isPending ? "Применяю…" : COPY.cta.applyAIFill}

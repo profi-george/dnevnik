@@ -4,7 +4,7 @@ import { formatDateRu, startOfToday } from "@/lib/dates";
 import { CHECKPOINT_TYPE_LABEL } from "@/lib/labels";
 import { COPY, dayWord } from "@/lib/microcopy";
 import CheckpointResultForm from "@/components/CheckpointResultForm";
-import { IconArrowLeft, IconExternal } from "@/components/icons";
+import { IconArrowLeft, IconClock, IconExternal } from "@/components/icons";
 
 type Props = {
   searchParams: Promise<{ projectId?: string }>;
@@ -48,24 +48,30 @@ export default async function TodayPage({ searchParams }: Props) {
         </Link>
       </div>
 
-      <form className="card flex flex-wrap items-center gap-1.5 p-1.5">
-        <select
-          name="projectId"
-          defaultValue={projectId ?? ""}
-          aria-label={COPY.fields.filterProject.label}
-          className="field w-auto"
-        >
-          <option value="">{COPY.fields.filterProject.placeholder}</option>
+      {/* Фильтр по проекту — теми же пилюлями, что в «Дневнике»: один фильтр,
+          одна механика на оба экрана. Выпадающий список с «Применить» здесь
+          требовал двух действий там, где в соседнем разделе хватает одного. */}
+      {projects.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Link
+            href="/today"
+            aria-current={!projectId ? "page" : undefined}
+            className={`pill ${!projectId ? "pill-active" : ""}`}
+          >
+            {COPY.fields.filterProject.placeholder}
+          </Link>
           {projects.map((p) => (
-            <option key={p.id} value={p.id}>
+            <Link
+              key={p.id}
+              href={`/today?projectId=${p.id}`}
+              aria-current={projectId === p.id ? "page" : undefined}
+              className={`pill ${projectId === p.id ? "pill-active" : ""}`}
+            >
               {p.name}
-            </option>
+            </Link>
           ))}
-        </select>
-        <button type="submit" className="btn btn-secondary">
-          {COPY.cta.applyFilters}
-        </button>
-      </form>
+        </div>
+      )}
 
       {checkpoints.length > 0 ? (
         <ul className="card divide-y divide-line-soft">
@@ -114,11 +120,19 @@ export default async function TodayPage({ searchParams }: Props) {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-0.5">
-                  <p className="hint tabular-nums">Правка внесена {formatDateRu(cp.action.date)}</p>
+                {/* Дата правки — метка над сутью, а не ещё одна строка текста:
+                    иконка и размер 11px отделяют её от описания и от «почему». */}
+                <div className="flex flex-col gap-1">
+                  <p className="inline-flex items-center gap-1.5 text-2xs tabular-nums text-fg-subtle">
+                    <IconClock className="h-3 w-3 shrink-0" />
+                    Правка внесена {formatDateRu(cp.action.date)}
+                  </p>
                   <p className="text-13 text-fg">{cp.action.description}</p>
                   {cp.action.justification && (
-                    <p className="hint">Почему так решили: {cp.action.justification}</p>
+                    <p className="hint">
+                      <span className="text-fg-muted">Почему так решили:</span>{" "}
+                      {cp.action.justification}
+                    </p>
                   )}
                 </div>
 
@@ -132,7 +146,7 @@ export default async function TodayPage({ searchParams }: Props) {
           <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
             <p className="text-base font-medium text-fg">{empty.title}</p>
             <p className="text-13 leading-relaxed text-fg-muted">{empty.body}</p>
-            <Link href={emptyHref} className="btn btn-secondary mt-2">
+            <Link href={emptyHref} className="btn btn-primary mt-2">
               {empty.cta}
             </Link>
           </div>

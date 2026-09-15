@@ -10,7 +10,7 @@ import AddCheckpointControl from "@/components/AddCheckpointControl";
 import ResizableTable, { type ResizableColumn } from "@/components/ResizableTable";
 import { deleteAction } from "@/app/actions";
 import { COPY, actionWord } from "@/lib/microcopy";
-import { IconArrowRight, IconSearch, IconX } from "@/components/icons";
+import { IconArrowRight, IconChevronDown, IconFilter, IconSearch, IconX } from "@/components/icons";
 
 type Props = {
   searchParams: Promise<{
@@ -113,10 +113,8 @@ export default async function DiaryPage({ searchParams }: Props) {
   if (q) {
     activeFilters.push({ label: `Поиск: «${q}»`, clearHref: hrefWithout("q") });
   }
-  if (projectId) {
-    const name = projects.find((p) => p.id === projectId)?.name ?? projectId;
-    activeFilters.push({ label: `Проект: ${name}`, clearHref: hrefWithout("projectId") });
-  }
+  // Проект намеренно не дублируется чипом: он уже подсвечен залитой пилюлей выше,
+  // и снимается соседней «Все проекты». Два индикатора одного фильтра — шум.
   if (from || to) {
     const rangeLabel = `${from ? formatDateRu(parseDateInput(from)) : "…"} — ${to ? formatDateRu(parseDateInput(to)) : "…"}`;
     activeFilters.push({ label: `Период: ${rangeLabel}`, clearHref: hrefWithout("from", "to") });
@@ -138,16 +136,13 @@ export default async function DiaryPage({ searchParams }: Props) {
         <p className="hint">{COPY.tooltips.inlineEdit}</p>
       </div>
 
-      {/* Проекты — карточками, не выпадающим списком: клик сразу фильтрует, без Применить */}
+      {/* Проекты — карточками, не выпадающим списком: клик сразу фильтрует, без Применить.
+          aria-current, а не aria-pressed: это ссылки, а не переключатели. */}
       <div className="flex flex-wrap items-center gap-1.5">
         <Link
           href={hrefWithProject(null)}
-          aria-pressed={!projectId}
-          className={`rounded-full border px-3 py-1.5 text-13 font-medium transition-colors ${
-            !projectId
-              ? "border-ink-600 bg-ink-600 text-white"
-              : "border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg"
-          }`}
+          aria-current={!projectId ? "page" : undefined}
+          className={`pill ${!projectId ? "pill-active" : ""}`}
         >
           Все проекты
         </Link>
@@ -155,12 +150,8 @@ export default async function DiaryPage({ searchParams }: Props) {
           <Link
             key={p.id}
             href={hrefWithProject(p.id)}
-            aria-pressed={projectId === p.id}
-            className={`rounded-full border px-3 py-1.5 text-13 font-medium transition-colors ${
-              projectId === p.id
-                ? "border-ink-600 bg-ink-600 text-white"
-                : "border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg"
-            }`}
+            aria-current={projectId === p.id ? "page" : undefined}
+            className={`pill ${projectId === p.id ? "pill-active" : ""}`}
           >
             {p.name}
           </Link>
@@ -183,13 +174,28 @@ export default async function DiaryPage({ searchParams }: Props) {
           />
         </div>
 
+        {/* Раскрывашка: у summary есть и воронка, и шеврон, который поворачивается —
+            без них кнопка читалась как обычная, и было не понять, что под ней ещё есть слой */}
         <details open={!!(from || to || overdueOnly || (sort && sort !== "date_desc"))}>
-          <summary className="btn btn-secondary cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
-            Фильтры{advancedFilterCount > 0 ? ` (${advancedFilterCount})` : ""}
+          {/* Утилиты перебивают .btn-secondary (слой utilities выше components),
+              поэтому hover для состояния «есть активные фильтры» задан явно */}
+          <summary
+            className={`btn btn-secondary cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden ${
+              advancedFilterCount > 0
+                ? "border-ink-200 bg-ink-50 text-ink-700 hover:bg-ink-100"
+                : ""
+            }`}
+          >
+            <IconFilter className="h-3.5 w-3.5 shrink-0" />
+            Фильтры
+            {advancedFilterCount > 0 && <span className="count">{advancedFilterCount}</span>}
+            <IconChevronDown className="disclosure-chevron h-3.5 w-3.5 shrink-0 opacity-60" />
           </summary>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {/* Раскрытые фильтры — в собственной подложке: видно, что это содержимое
+              раскрывашки, а не третий ряд свободно лежащих контролов */}
+          <div className="panel mt-1.5 flex flex-wrap items-center gap-1.5 p-1.5">
             <div
-              className="flex items-center gap-1.5 rounded-md border border-line-soft bg-subtle py-1 pr-1 pl-2.5"
+              className="flex items-center gap-1.5 rounded-md border border-line bg-surface py-1 pr-1 pl-2.5"
               title={COPY.tooltips.periodFilter}
             >
               <span className="micro">Период</span>
@@ -218,7 +224,7 @@ export default async function DiaryPage({ searchParams }: Props) {
               ))}
             </select>
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-13 text-fg-muted transition-colors hover:border-line-strong has-[:checked]:border-danger-border has-[:checked]:bg-danger-soft has-[:checked]:text-danger">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-13 text-fg-muted transition-colors hover:border-line-strong has-[:checked]:border-danger-border has-[:checked]:bg-danger-soft has-[:checked]:text-danger">
               <input
                 type="checkbox"
                 name="overdue"
@@ -243,9 +249,9 @@ export default async function DiaryPage({ searchParams }: Props) {
         </div>
       </form>
 
-      {activeFilters.length > 0 && (
+      {(activeFilters.length > 0 || projectId) && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="micro">Фильтры</span>
+          {activeFilters.length > 0 && <span className="micro">Применено</span>}
           {activeFilters.map((f) => (
             <Link
               key={f.label}

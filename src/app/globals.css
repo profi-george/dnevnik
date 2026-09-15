@@ -53,6 +53,9 @@
   --color-note-blue: oklch(0.966 0.028 235);
   --color-note-rose: oklch(0.966 0.026 10);
   --color-note-purple: oklch(0.966 0.026 300);
+  /* Подсветка редактируемого поля внутри цветной заметки: белая вуаль работает
+     поверх любого из пяти фонов, в отличие от непрозрачного --color-surface */
+  --color-note-tint: oklch(1 0 0 / 0.55);
 
   /* ——— Шрифт ———
      Inter подключён через next/font в src/app/layout.tsx (латиница + кириллица) */
@@ -322,6 +325,84 @@
     background: currentColor;
   }
 
+  /* ——— Пилюля-переключатель (фильтр по проекту на «Дневнике» и «Снять сегодня»)
+     Крупнее чипа: это орган управления, а не метка. Одна разметка на два экрана,
+     чтобы фильтр нигде не расходился по высоте и радиусу. ——————————————— */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface);
+    padding: 0.3125rem 0.75rem;
+    font-size: var(--text-13);
+    line-height: 1.15rem;
+    font-weight: 500;
+    color: var(--color-fg-muted);
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .pill:hover {
+    border-color: var(--color-line-strong);
+    color: var(--color-fg);
+  }
+
+  .pill-active,
+  .pill-active:hover {
+    border-color: var(--color-ink-600);
+    background: var(--color-ink-600);
+    color: white;
+  }
+
+  /* ——— Счётчик у метки: «Фильтры 2», «Риски 5» ————————————————————— */
+  .count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 999px;
+    background: var(--color-ink-100);
+    padding: 0 0.3125rem;
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    color: var(--color-ink-700);
+  }
+
+  /* ——— Второстепенные органы управления карточки ————————————————————
+     Прячутся до наведения, но остаются доступны с клавиатуры и всегда видны
+     там, где наведения нет вовсе (тач). */
+  .reveal {
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  .group:hover .reveal,
+  .group:focus-within .reveal,
+  .reveal:focus-visible {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .reveal {
+      opacity: 1;
+    }
+  }
+
+  /* ——— Раскрывашка ——————————————————————————————————————————————— */
+  .disclosure-chevron {
+    transition: transform 150ms ease;
+  }
+
+  details[open] > summary .disclosure-chevron {
+    transform: rotate(180deg);
+  }
+
   /* ——— Таблица дневника ————————————————————————————————————————— */
   .tbl {
     width: 100%;
@@ -348,6 +429,58 @@
      перебивает это на sticky (выше по специфичности в том же @layer). */
   .th-resizable {
     position: relative;
+  }
+
+  /* ——— Резак ширины колонки ——————————————————————————————————————
+     Линия на границе колонок видна всегда: это и разделитель шапки, и подсказка,
+     что за край можно взяться. Под курсором она утолщается и синеет, под нажатием
+     темнеет — тот же язык, что у фокуса полей (ink-500 → ink-600).
+     Захват шире линии (10px) и целиком лежит внутри своего th: вылезающая наружу
+     половина всё равно перекрывалась бы соседним sticky-заголовком. */
+  .col-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    width: 0.625rem;
+    height: 100%;
+    cursor: col-resize;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .col-resizer::after {
+    content: "";
+    width: 1px;
+    background: var(--color-line);
+    transition:
+      width 120ms ease,
+      background-color 120ms ease;
+  }
+
+  .col-resizer:hover::after,
+  .col-resizer:focus-visible::after {
+    width: 2px;
+    background: var(--color-ink-500);
+  }
+
+  .col-resizer:active::after {
+    width: 2px;
+    background: var(--color-ink-600);
+  }
+
+  .col-resizer:focus-visible {
+    outline: none;
+  }
+
+  /* Пока тянут — линия держится подсвеченной, даже если курсор убежал
+     за пределы заголовка: иначе «гаснет» ровно то, что сейчас двигается. */
+  .col-resizer[data-dragging="true"]::after {
+    width: 2px;
+    background: var(--color-ink-600);
   }
 
   /* Шапка липнет только там, где обёртка таблицы не является скролл-контейнером
@@ -432,6 +565,18 @@
     color: var(--color-fg-subtle);
   }
 
+  /* Ячейка только для чтения (карточка проекта вне режима правки).
+     Тот же ритм и та же сетка, что у редактируемой, но без ложного обещания
+     клика: курсор обычный, под наведением ничего не подсвечивается. */
+  .cell-readonly {
+    cursor: default;
+  }
+
+  .cell-readonly:hover {
+    background: transparent;
+    border-color: transparent;
+  }
+
   /* Одна строка с многоточием — для второстепенных колонок, где полный текст
      не обязателен на глаз: клик по ячейке всё равно открывает его целиком. */
   .cell-clamp {
@@ -456,6 +601,55 @@
 
   .cell-input:focus-visible {
     outline: none;
+  }
+
+  /* ——— Поля карточки заметки ————————————————————————————————————
+     Тот же договор, что у ячеек таблицы: клик — правка. Чтобы это было видно,
+     под наведением поле светлеет белой вуалью (работает поверх любого из пяти
+     пастельных фонов). Просмотр и правка делят отступы один в один — карточка
+     не дёргается в момент входа в редактирование. */
+  .note-field {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin-inline: -0.25rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    padding: 0.125rem 0.25rem;
+    text-align: left;
+    color: var(--color-fg);
+    transition:
+      background-color 100ms ease,
+      border-color 100ms ease;
+  }
+
+  button.note-field {
+    cursor: text;
+  }
+
+  button.note-field:hover {
+    background: var(--color-note-tint);
+    border-color: var(--color-line);
+  }
+
+  .note-field:focus {
+    outline: none;
+    background: var(--color-surface);
+    border-color: var(--color-ink-500);
+  }
+
+  /* С клавиатуры одной смены рамки мало — добавляем то же кольцо, что у .field */
+  .note-field:focus-visible {
+    outline: none;
+    background: var(--color-surface);
+    border-color: var(--color-ink-500);
+    box-shadow: 0 0 0 3px var(--color-ink-100);
+  }
+
+  .note-field::placeholder {
+    color: var(--color-fg-subtle);
+    font-weight: 400;
   }
 
   /* ——— Мини-статус «Сохранено / Ошибка» под ячейкой ————————————— */

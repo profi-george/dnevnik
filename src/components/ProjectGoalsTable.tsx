@@ -32,13 +32,15 @@ export default function ProjectGoalsTable({ projectId, goals }: { projectId: str
       {goals.length > 0 ? (
         <div className="overflow-x-clip rounded-md border border-line max-xl:overflow-x-auto">
           <table className="tbl table-fixed min-w-[52rem]">
+            {/* Проценты в сумме дают ровно 100 (было 95), столбец с корзиной —
+                фиксированные 2.5rem: он не должен отъедать долю у описания. */}
             <colgroup>
               <col style={{ width: "10%" }} />
-              <col style={{ width: "16%" }} />
+              <col style={{ width: "18%" }} />
               <col style={{ width: "10%" }} />
-              <col style={{ width: "32%" }} />
-              <col style={{ width: "27%" }} />
-              {editing && <col style={{ width: "5%" }} />}
+              <col style={{ width: "34%" }} />
+              <col style={{ width: "28%" }} />
+              {editing && <col style={{ width: "2.5rem" }} />}
             </colgroup>
             <thead>
               <tr>
@@ -47,7 +49,11 @@ export default function ProjectGoalsTable({ projectId, goals }: { projectId: str
                 <th>{F.level.label}</th>
                 <th>{F.description.label}</th>
                 <th>{F.validDatesNote.label}</th>
-                {editing && <th aria-hidden></th>}
+                {editing && (
+                  <th>
+                    <span className="sr-only">Удалить цель</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>

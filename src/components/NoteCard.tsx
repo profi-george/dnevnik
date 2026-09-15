@@ -90,13 +90,14 @@ export default function NoteCard({ note }: { note: Note }) {
               }
             }}
             placeholder={COPY.fields.noteTitle.placeholder}
-            className="min-w-0 flex-1 bg-transparent text-13 font-semibold text-fg outline-none placeholder:font-normal placeholder:text-fg-subtle"
+            className="note-field min-w-0 flex-1 text-13 font-semibold"
           />
         ) : (
           <button
             type="button"
             onClick={() => setEditingField("title")}
-            className="min-w-0 flex-1 truncate text-left text-13 font-semibold text-fg"
+            title={title || COPY.fields.noteTitle.placeholder}
+            className="note-field min-w-0 flex-1 truncate text-13 font-semibold"
           >
             {title || <span className="font-normal text-fg-subtle">{COPY.fields.noteTitle.placeholder}</span>}
           </button>
@@ -107,7 +108,7 @@ export default function NoteCard({ note }: { note: Note }) {
           title={pinned ? COPY.cta.unpinNote : COPY.cta.pinNote}
           aria-label={pinned ? COPY.cta.unpinNote : COPY.cta.pinNote}
           aria-pressed={pinned}
-          className={`btn-icon h-6 w-6 shrink-0 ${pinned ? "text-ink-600" : "text-fg-subtle opacity-0 group-hover:opacity-100"}`}
+          className={`btn-icon h-6 w-6 shrink-0 ${pinned ? "text-ink-600" : "reveal text-fg-subtle"}`}
         >
           <IconPin className="h-3.5 w-3.5" />
         </button>
@@ -127,15 +128,17 @@ export default function NoteCard({ note }: { note: Note }) {
             }
           }}
           placeholder={COPY.fields.noteText.placeholder}
-          className="min-h-16 w-full resize-none bg-transparent text-13 text-fg outline-none placeholder:text-fg-subtle"
+          className="note-field min-h-16 resize-none text-13"
         />
       ) : (
         <button
           type="button"
           onClick={() => setEditingField("text")}
-          className="whitespace-pre-wrap break-words text-left text-13 text-fg"
+          className="note-field text-13 break-words whitespace-pre-wrap"
         >
-          {text}
+          {/* У заметки с одним заголовком тело пустое — без заглушки по нему
+              нечем попасть в правку: кнопка схлопывается в нулевую высоту */}
+          {text || <span className="text-fg-subtle">{COPY.fields.noteText.placeholder}</span>}
         </button>
       )}
 
@@ -146,14 +149,14 @@ export default function NoteCard({ note }: { note: Note }) {
         </p>
       )}
 
-      <div className="mt-1 flex items-center justify-between opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="reveal mt-1 flex items-center justify-between">
         <div ref={paletteRef} className="relative">
           <button
             type="button"
             onClick={() => setShowPalette((v) => !v)}
             title="Цвет"
             aria-label="Цвет заметки"
-            className="h-5 w-5 rounded-full border border-line-strong"
+            className="h-5 w-5 rounded-full border border-line-strong transition-colors hover:border-fg-subtle"
             style={{ backgroundColor: `var(--color-${colorKey === "default" ? "surface" : `note-${colorKey}`})` }}
           />
           {showPalette && (

@@ -52,7 +52,7 @@ export default function NotesBoard({ notes }: { notes: Note[] }) {
 
       {filtered.length === 0 ? (
         <div className="card px-6 py-14">
-          <div className="mx-auto flex max-w-sm flex-col items-center gap-1.5 text-center">
+          <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
             <p className="text-base font-medium text-fg">
               {q.trim() ? "Ничего не нашлось" : COPY.empty.notesEmpty.title}
             </p>
