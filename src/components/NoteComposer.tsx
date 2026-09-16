@@ -1,15 +1,30 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { createNote } from "@/app/actions";
 import { COPY } from "@/lib/microcopy";
 import { IconPlus } from "@/components/icons";
 
-export default function NoteComposer() {
+type Project = { id: string; name: string };
+
+export default function NoteComposer({
+  projects,
+  defaultProjectId,
+}: {
+  projects: Project[];
+  defaultProjectId?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const [projectId, setProjectId] = useState(defaultProjectId ?? "");
   const [isPending, startTransition] = useTransition();
+
+  // Заметка через композер по умолчанию идёт в тот же проект, на который
+  // сейчас стоит фильтр доски — самый частый случай при работе с одним клиентом.
+  useEffect(() => {
+    setProjectId(defaultProjectId ?? "");
+  }, [defaultProjectId]);
 
   function close() {
     setOpen(false);
@@ -25,6 +40,7 @@ export default function NoteComposer() {
     const formData = new FormData();
     formData.set("title", title);
     formData.set("text", text);
+    formData.set("projectId", projectId);
     startTransition(async () => {
       await createNote(formData);
       close();
@@ -62,6 +78,21 @@ export default function NoteComposer() {
         placeholder={COPY.fields.noteText.placeholder}
         className="note-field resize-none text-13"
       />
+      {projects.length > 0 && (
+        <select
+          value={projectId}
+          onChange={(e) => setProjectId(e.target.value)}
+          aria-label="Проект"
+          className="field field-sm w-auto self-start"
+        >
+          <option value="">Без проекта</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      )}
       <div className="mt-0.5 flex items-center gap-2 border-t border-line-soft pt-2.5">
         <button type="button" onClick={save} disabled={isPending} className="btn btn-primary">
           {isPending ? "Сохраняю…" : "Сохранить"}

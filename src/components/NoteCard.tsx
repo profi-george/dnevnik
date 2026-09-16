@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { updateNoteField, toggleNotePin, deleteNote } from "@/app/actions";
+import { updateNoteField, toggleNotePin, deleteNote, setNoteProject } from "@/app/actions";
 import { NOTE_COLORS, noteColorClassName } from "@/lib/noteColors";
 import { COPY } from "@/lib/microcopy";
 import { IconAlert, IconPin, IconTrash } from "@/components/icons";
+
+type Project = { id: string; name: string };
 
 type Note = {
   id: string;
@@ -12,15 +14,19 @@ type Note = {
   text: string;
   color: string;
   pinned: boolean;
+  projectId: string | null;
+  project: Project | null;
 };
 
-export default function NoteCard({ note }: { note: Note }) {
+export default function NoteCard({ note, projects }: { note: Note; projects: Project[] }) {
   const [editingField, setEditingField] = useState<"title" | "text" | null>(null);
   const [title, setTitle] = useState(note.title ?? "");
   const [text, setText] = useState(note.text);
   const [pinned, setPinned] = useState(note.pinned);
   const [colorKey, setColorKey] = useState(note.color);
   const [showPalette, setShowPalette] = useState(false);
+  const [projectId, setProjectId] = useState(note.projectId ?? "");
+  const [editingProject, setEditingProject] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const paletteRef = useRef<HTMLDivElement>(null);
@@ -71,10 +77,52 @@ export default function NoteCard({ note }: { note: Note }) {
     });
   }
 
+  function changeProject(next: string) {
+    setProjectId(next);
+    setEditingProject(false);
+    startTransition(async () => {
+      await setNoteProject(note.id, next || null);
+    });
+  }
+
+  const projectName = projects.find((p) => p.id === projectId)?.name;
+
   return (
     <div
       className={`group relative mb-3 flex w-full break-inside-avoid flex-col gap-1.5 rounded-lg border border-line p-3 shadow-card ${noteColorClassName(colorKey)}`}
     >
+      {/* Проект — всегда на виду, а не только по ховеру: смысл в том, чтобы
+          с нескольких активных клиентов сразу видеть глазами, чья это заметка. */}
+      {editingProject ? (
+        <select
+          autoFocus
+          value={projectId}
+          onChange={(e) => changeProject(e.target.value)}
+          onBlur={() => setEditingProject(false)}
+          className="cell-input w-fit text-2xs"
+        >
+          <option value="">Без проекта</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditingProject(true)}
+          title="Клик — привязать к проекту"
+          className={`w-fit rounded-full px-2 py-0.5 text-2xs font-medium transition-colors ${
+            projectName
+              ? "bg-ink-100 text-ink-700 hover:bg-ink-200"
+              : "text-fg-subtle opacity-0 group-hover:opacity-100 hover:text-fg-muted"
+          }`}
+        >
+          {projectName ?? "+ проект"}
+        </button>
+      )}
+
       <div className="flex items-start justify-between gap-2">
         {editingField === "title" ? (
           <input

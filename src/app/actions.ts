@@ -532,8 +532,19 @@ export async function createNote(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const text = String(formData.get("text") ?? "").trim();
   if (!text) return;
-  await prisma.note.create({ data: { title: title || null, text } });
+  const projectId = String(formData.get("projectId") ?? "").trim();
+  await prisma.note.create({ data: { title: title || null, text, projectId: projectId || null } });
   revalidatePath("/notes");
+}
+
+export async function setNoteProject(
+  id: string,
+  projectId: string | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!id) return { ok: false, error: "Не передан id заметки." };
+  await prisma.note.update({ where: { id }, data: { projectId } });
+  revalidatePath("/notes");
+  return { ok: true };
 }
 
 const NOTE_FIELDS = ["title", "text", "color"] as const;

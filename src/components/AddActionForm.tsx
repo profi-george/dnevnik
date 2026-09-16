@@ -4,25 +4,36 @@ import { useEffect, useState, useTransition } from "react";
 import { createAction, createProjectAndReturn, getPlacesForProject } from "@/app/actions";
 import { addDays, toDateInputValue } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
+import { getLastProjectId, setLastProjectId } from "@/lib/lastProject";
 import { IconAlert, IconPlus } from "@/components/icons";
 
 type Project = { id: string; name: string };
 
 const F = COPY.fields;
 
-const DEFAULT_PROJECT_NAME = "Gclinic";
-
 export default function AddActionForm({ projects: initialProjects }: { projects: Project[] }) {
   const [projectList, setProjectList] = useState(initialProjects);
-  const [projectId, setProjectId] = useState(
-    initialProjects.find((p) => p.name === DEFAULT_PROJECT_NAME)?.id ?? initialProjects[0]?.id ?? "",
-  );
+  const [projectId, setProjectId] = useState(initialProjects[0]?.id ?? "");
   const [places, setPlaces] = useState<string[]>([]);
   const [noCheckpoints, setNoCheckpoints] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectError, setNewProjectError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  // Подставляем последний использованный проект уже после монтирования — до
+  // этого на сервере localStorage нет, а первый рендер должен совпасть с
+  // клиентским, чтобы не было гидратационного дёргания.
+  useEffect(() => {
+    const saved = getLastProjectId();
+    if (saved && initialProjects.some((p) => p.id === saved)) setProjectId(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function selectProject(id: string) {
+    setProjectId(id);
+    setLastProjectId(id);
+  }
 
   function createNewProject() {
     setNewProjectError(null);
@@ -33,7 +44,7 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
         return;
       }
       setProjectList((prev) => [...prev, result.project]);
-      setProjectId(result.project.id);
+      selectProject(result.project.id);
       setNewProjectName("");
       setAddingProject(false);
     });
@@ -70,7 +81,7 @@ export default function AddActionForm({ projects: initialProjects }: { projects:
             <button
               key={p.id}
               type="button"
-              onClick={() => setProjectId(p.id)}
+              onClick={() => selectProject(p.id)}
               aria-pressed={projectId === p.id}
               className={`cursor-pointer rounded-full border px-3 py-1.5 text-13 font-medium transition-colors ${
                 projectId === p.id

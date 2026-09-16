@@ -11,6 +11,7 @@ import ProjectGoalsTable from "@/components/ProjectGoalsTable";
 import ProjectRisksTable from "@/components/ProjectRisksTable";
 import ProjectPasswordsEditor from "@/components/ProjectPasswordsEditor";
 import ProjectPlanList from "@/components/ProjectPlanList";
+import ProjectOverview from "@/components/ProjectOverview";
 import ProjectTabs from "@/components/ProjectTabs";
 
 type Props = {
@@ -20,7 +21,7 @@ type Props = {
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params;
 
-  const [project, allProjects] = await Promise.all([
+  const [project, allProjects, recentActions] = await Promise.all([
     prisma.project.findUnique({
       where: { id },
       include: {
@@ -33,6 +34,12 @@ export default async function ProjectDetailPage({ params }: Props) {
       },
     }),
     prisma.project.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, name: true } }),
+    prisma.action.findMany({
+      where: { projectId: id },
+      orderBy: { date: "desc" },
+      take: 8,
+      select: { id: true, date: true, place: true, description: true },
+    }),
   ]);
 
   if (!project) notFound();
@@ -51,7 +58,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           href={`/diary?projectId=${project.id}`}
           className="btn btn-secondary"
         >
-          Дневник по проекту · {project._count.actions} {actionWord(project._count.actions)}
+          Открыть полный дневник · {project._count.actions} {actionWord(project._count.actions)}
           <IconArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -73,6 +80,17 @@ export default async function ProjectDetailPage({ params }: Props) {
 
       <ProjectTabs
         tabs={[
+          {
+            id: "overview",
+            label: "Обзор",
+            content: (
+              <ProjectOverview
+                project={project}
+                recentActions={recentActions}
+                totalActionsCount={project._count.actions}
+              />
+            ),
+          },
           {
             id: "plan",
             label: "План",

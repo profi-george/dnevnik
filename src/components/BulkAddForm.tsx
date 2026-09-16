@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { parseActionsWithAI, createActionsBulk, createProjectAndReturn } from "@/app/actions";
 import { addDays, parseDateInput, toDateInputValue } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
+import { getLastProjectId, setLastProjectId } from "@/lib/lastProject";
 import type { ParsedAction } from "@/lib/gemini";
 import { IconAlert, IconArrowLeft, IconArrowRight, IconCheck, IconPlus, IconSparkles, Spinner } from "@/components/icons";
 
 type Project = { id: string; name: string };
 
-const DEFAULT_PROJECT_NAME = "Gclinic";
 const PD_ID_URL = "https://pd-id.vercel.app";
 
 export default function BulkAddForm({
@@ -27,13 +27,7 @@ export default function BulkAddForm({
   const [rawText, setRawText] = useState(initialText ?? "");
   const [savedCount, setSavedCount] = useState(0);
   const [projectList, setProjectList] = useState(initialProjects);
-  // Раньше сравнение было чувствительно к регистру и при несовпадении молча
-  // откатывалось на первый проект в списке — правка могла уйти не тому клиенту.
-  // Теперь: точное совпадение по имени без учёта регистра, а если такого проекта
-  // нет вовсе — не выбираем ничего, форма и так не даст продолжить без выбора.
-  const [projectId, setProjectId] = useState(
-    initialProjects.find((p) => p.name.toLowerCase() === DEFAULT_PROJECT_NAME.toLowerCase())?.id ?? "",
-  );
+  const [projectId, setProjectId] = useState(initialProjects[0]?.id ?? "");
   const [addingProject, setAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectError, setNewProjectError] = useState<string | null>(null);
@@ -49,6 +43,19 @@ export default function BulkAddForm({
   const [showMoreInput, setShowMoreInput] = useState(false);
   const [moreText, setMoreText] = useState("");
 
+  // Подставляем последний использованный проект уже после монтирования — на
+  // сервере localStorage нет, а первый рендер должен совпасть с клиентским.
+  useEffect(() => {
+    const saved = getLastProjectId();
+    if (saved && initialProjects.some((p) => p.id === saved)) setProjectId(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function selectProject(id: string) {
+    setProjectId(id);
+    setLastProjectId(id);
+  }
+
   function createNewProject() {
     setNewProjectError(null);
     startTransition(async () => {
@@ -58,7 +65,7 @@ export default function BulkAddForm({
         return;
       }
       setProjectList((prev) => [...prev, result.project]);
-      setProjectId(result.project.id);
+      selectProject(result.project.id);
       setNewProjectName("");
       setAddingProject(false);
     });
@@ -167,7 +174,7 @@ export default function BulkAddForm({
                 key={p.id}
                 type="button"
                 disabled={parsing}
-                onClick={() => setProjectId(p.id)}
+                onClick={() => selectProject(p.id)}
                 aria-pressed={projectId === p.id}
                 className={`cursor-pointer rounded-full border px-3 py-1.5 text-13 font-medium transition-colors disabled:opacity-50 ${
                   projectId === p.id

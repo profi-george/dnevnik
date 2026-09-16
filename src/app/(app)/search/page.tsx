@@ -23,9 +23,12 @@ export default async function SearchPage({ searchParams }: Props) {
     const [projects, actions, notes, risks, links, planItems] = await Promise.all([
       prisma.project.findMany({ select: { id: true, name: true } }),
       prisma.action.findMany({ include: { project: true }, orderBy: { date: "desc" } }),
-      prisma.note.findMany({ orderBy: { updatedAt: "desc" } }),
-      prisma.projectRisk.findMany({ include: { project: true } }),
-      prisma.projectLink.findMany({ include: { project: true } }),
+      prisma.note.findMany({
+        orderBy: { updatedAt: "desc" },
+        include: { project: { select: { name: true } } },
+      }),
+      prisma.projectRisk.findMany({ include: { project: true }, orderBy: { order: "desc" } }),
+      prisma.projectLink.findMany({ include: { project: true }, orderBy: { order: "desc" } }),
       prisma.projectPlanItem.findMany({ include: { project: true }, orderBy: { createdAt: "desc" } }),
     ]);
 
@@ -58,17 +61,19 @@ export default async function SearchPage({ searchParams }: Props) {
           .filter(
             (n) => (n.title ?? "").toLowerCase().includes(needle) || n.text.toLowerCase().includes(needle),
           )
+          .slice(0, 20)
           .map((n) => ({
             key: n.id,
             href: `/notes?q=${encodeURIComponent(query)}`,
             primary: n.title || n.text.slice(0, 60),
-            secondary: n.title ? n.text.slice(0, 80) : undefined,
+            secondary: [n.project?.name, n.title ? n.text.slice(0, 80) : null].filter(Boolean).join(" · ") || undefined,
           })),
       },
       {
         title: "Риски",
         items: risks
           .filter((r) => r.risk.toLowerCase().includes(needle))
+          .slice(0, 20)
           .map((r) => ({
             key: r.id,
             href: `/projects/${r.projectId}?tab=risks`,
@@ -80,6 +85,7 @@ export default async function SearchPage({ searchParams }: Props) {
         title: "Важные ссылки",
         items: links
           .filter((l) => l.label.toLowerCase().includes(needle))
+          .slice(0, 20)
           .map((l) => ({
             key: l.id,
             href: `/projects/${l.projectId}?tab=links`,
@@ -91,6 +97,7 @@ export default async function SearchPage({ searchParams }: Props) {
         title: "План",
         items: planItems
           .filter((p) => p.text.toLowerCase().includes(needle))
+          .slice(0, 20)
           .map((p) => ({
             key: p.id,
             href: `/projects/${p.projectId}?tab=plan`,
