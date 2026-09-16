@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { formatDateRu } from "@/lib/dates";
 import { COPY } from "@/lib/microcopy";
-import { IconArrowRight } from "@/components/icons";
+import type { ProjectState } from "@/lib/projectState";
+import { IconAlert, IconArrowRight, IconClock } from "@/components/icons";
 
 type Project = {
   id: string;
@@ -41,15 +42,60 @@ export default function ProjectOverview({
   project,
   recentActions,
   totalActionsCount,
+  state,
 }: {
   project: Project;
   recentActions: RecentAction[];
   totalActionsCount: number;
+  state: ProjectState;
 }) {
   const filledInfo = INFO_FIELDS.filter(([key]) => project[key]?.trim());
 
   return (
     <div className="flex flex-col gap-4">
+      {/* «Сейчас» — слой ориентации: что делать дальше и что горит, отдельно
+          от постоянного контекста (Вводные) и истории (Последние правки). */}
+      <div className="card flex flex-col gap-2.5 p-5">
+        <h2 className="text-base font-semibold tracking-tight text-fg">Сейчас</h2>
+
+        <div className="flex items-start gap-2">
+          <span className="micro w-24 shrink-0 pt-0.5">Следующее</span>
+          {state.nextAction ? (
+            <Link
+              href={`/projects/${project.id}?tab=plan`}
+              className="link min-w-0 flex-1 truncate text-13"
+            >
+              {state.nextAction}
+            </Link>
+          ) : (
+            <Link href={`/projects/${project.id}?tab=plan`} className="link text-13">
+              Добавить шаг в план
+            </Link>
+          )}
+        </div>
+
+        {state.overdueCount > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="micro w-24 shrink-0">Внимание</span>
+            <Link
+              href={`/today?projectId=${project.id}`}
+              className="link inline-flex items-center gap-1.5 text-13 text-danger"
+            >
+              <IconAlert className="h-3.5 w-3.5 shrink-0" />
+              {state.overdueCount} просрочено
+            </Link>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <span className="micro w-24 shrink-0">Активность</span>
+          <span className="inline-flex items-center gap-1.5 text-13 text-fg-subtle">
+            <IconClock className="h-3.5 w-3.5 shrink-0" />
+            {state.lastActivity ? `Последняя правка ${formatDateRu(state.lastActivity)}` : "Правок ещё не было"}
+          </span>
+        </div>
+      </div>
+
       <div className="card flex flex-col gap-3 p-5">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-semibold tracking-tight text-fg">Вводные</h2>

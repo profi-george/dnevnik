@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getProjectStates } from "@/lib/projectState";
 import { actionWord } from "@/lib/microcopy";
 import { IconArrowLeft, IconArrowRight } from "@/components/icons";
 import ProjectNameField from "@/components/ProjectNameField";
@@ -43,6 +44,8 @@ export default async function ProjectDetailPage({ params }: Props) {
   ]);
 
   if (!project) notFound();
+
+  const state = (await getProjectStates([id])).get(id)!;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
@@ -88,6 +91,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                 project={project}
                 recentActions={recentActions}
                 totalActionsCount={project._count.actions}
+                state={state}
               />
             ),
           },
