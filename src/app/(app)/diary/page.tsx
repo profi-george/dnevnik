@@ -10,7 +10,7 @@ import AddCheckpointControl from "@/components/AddCheckpointControl";
 import ResizableTable, { type ResizableColumn } from "@/components/ResizableTable";
 import { deleteAction } from "@/app/actions";
 import { COPY, actionWord } from "@/lib/microcopy";
-import { IconArrowRight, IconChevronDown, IconFilter, IconSearch, IconX } from "@/components/icons";
+import { IconArrowRight, IconSearch, IconX } from "@/components/icons";
 
 type Props = {
   searchParams: Promise<{
@@ -65,9 +65,6 @@ export default async function DiaryPage({ searchParams }: Props) {
     : actionsRaw;
 
   const filtered = !!(projectId || from || to || q || overdueOnly);
-  const advancedFilterCount = [!!(from || to), overdueOnly, !!(sort && sort !== "date_desc")].filter(
-    Boolean,
-  ).length;
   const emptyState = filtered
     ? { ...COPY.empty.diaryFiltered, href: "/diary" }
     : projects.length === 0
@@ -98,7 +95,8 @@ export default async function DiaryPage({ searchParams }: Props) {
   }
 
   const DIARY_COLUMNS: ResizableColumn[] = [
-    { key: "date", label: "Дата правки", width: 100 },
+    // Дату не переносим — рвётся посреди числа; минимум держит её целиком
+    { key: "date", label: "Дата правки", width: 100, minWidth: 96 },
     { key: "project", label: "Проект", width: 100 },
     { key: "place", label: "Где именно", title: COPY.tooltips.place, width: 150 },
     { key: "description", label: "Что изменили", width: 200 },
@@ -158,8 +156,8 @@ export default async function DiaryPage({ searchParams }: Props) {
         ))}
       </div>
 
-      {/* Панель фильтров: поиск всегда на виду, остальное — за раскрывашкой «Фильтры» */}
-      <form className="card flex flex-wrap items-start gap-1.5 p-1.5">
+      {/* Панель фильтров: поиск, период, сортировка и просрочка — всё сразу на виду */}
+      <form className="card flex flex-wrap items-center gap-1.5 p-1.5">
         <input type="hidden" name="projectId" value={projectId ?? ""} />
 
         <div className="relative">
@@ -174,26 +172,7 @@ export default async function DiaryPage({ searchParams }: Props) {
           />
         </div>
 
-        {/* Раскрывашка: у summary есть и воронка, и шеврон, который поворачивается —
-            без них кнопка читалась как обычная, и было не понять, что под ней ещё есть слой */}
-        <details open={!!(from || to || overdueOnly || (sort && sort !== "date_desc"))}>
-          {/* Утилиты перебивают .btn-secondary (слой utilities выше components),
-              поэтому hover для состояния «есть активные фильтры» задан явно */}
-          <summary
-            className={`btn btn-secondary cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden ${
-              advancedFilterCount > 0
-                ? "border-ink-200 bg-ink-50 text-ink-700 hover:bg-ink-100"
-                : ""
-            }`}
-          >
-            <IconFilter className="h-3.5 w-3.5 shrink-0" />
-            Фильтры
-            {advancedFilterCount > 0 && <span className="count">{advancedFilterCount}</span>}
-            <IconChevronDown className="disclosure-chevron h-3.5 w-3.5 shrink-0 opacity-60" />
-          </summary>
-          {/* Раскрытые фильтры — в собственной подложке: видно, что это содержимое
-              раскрывашки, а не третий ряд свободно лежащих контролов */}
-          <div className="panel mt-1.5 flex flex-wrap items-center gap-1.5 p-1.5">
+        {/* Фильтры всегда на виду — без раскрывашки, в одном ряду с поиском */}
             <div
               className="flex items-center gap-1.5 rounded-md border border-line bg-surface py-1 pr-1 pl-2.5"
               title={COPY.tooltips.periodFilter}
@@ -234,8 +213,6 @@ export default async function DiaryPage({ searchParams }: Props) {
               />
               Только просроченные
             </label>
-          </div>
-        </details>
 
         <div className="ml-auto flex items-center gap-1.5">
           {filtered && (
@@ -282,7 +259,7 @@ export default async function DiaryPage({ searchParams }: Props) {
           <tbody>
             {actions.map((action) => (
               <tr key={action.id} className="group">
-                <td className="whitespace-nowrap">
+                <td>
                   <InlineField
                     id={action.id}
                     field="date"
@@ -317,7 +294,6 @@ export default async function DiaryPage({ searchParams }: Props) {
                     value={action.justification ?? ""}
                     placeholder="—"
                     tone="muted"
-                    truncate
                   />
                 </td>
                 <td>

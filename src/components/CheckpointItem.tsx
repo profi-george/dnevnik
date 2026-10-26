@@ -29,7 +29,11 @@ export default function CheckpointItem({
   result,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [editingDate, setEditingDate] = useState(false);
   const [dateStatus, setDateStatus] = useState<Status>(null);
+  // Результат, сохранённый прямо сейчас: сервер страницу не ревалидирует (см. ниже),
+  // поэтому показываем его под чипом без перезагрузки.
+  const [savedResult, setSavedResult] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [locallyDone, setLocallyDone] = useState(false);
   const [, startTransition] = useTransition();
@@ -66,29 +70,91 @@ export default function CheckpointItem({
   // полная формулировка остаётся в подсказке при наведении.
   const fullLabel = isDone ? "снято" : overdue ? "просрочено" : "ждёт результата";
   const label = isDone ? "снято" : overdue ? "просрочено" : "ждёт";
+  // «Своя дата» как название не несёт смысла — сама дата и так видна и правится кликом
+  const typeLabel = type === "CUSTOM" ? null : CHECKPOINT_TYPE_LABEL[type];
+  const shownResult = (savedResult ?? result ?? "").trim();
+
+  function saveDate(value: string) {
+    setEditingDate(false);
+    if (!value || value === plannedDateValue) return;
+    startTransition(async () => {
+      const res = await updateCheckpointDate(id, value);
+      setDateStatus(
+        res.ok ? { kind: "success", text: "Дата сохранена" } : { kind: "error", text: res.error },
+      );
+    });
+  }
 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-start gap-0.5">
-        <button
-          type="button"
+        {/* Клик по чипу открывает результат, клик по дате — правку даты */}
+        <div
           onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          title={`${CHECKPOINT_TYPE_LABEL[type]} · ${plannedDateLabel} · ${fullLabel}\n\n${
+          title={`${typeLabel ? `${typeLabel} · ` : ""}${plannedDateLabel} · ${fullLabel}\n\n${
             overdue ? COPY.tooltips.overdue : COPY.tooltips.checkpoints
           }`}
-          className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md border px-2 py-0.5 text-left text-2xs leading-4 transition-colors hover:brightness-[0.97] ${tone}`}
+          className={`flex min-w-0 flex-1 cursor-pointer items-start gap-1.5 rounded-md border px-2 py-0.5 text-left text-2xs leading-4 transition-colors hover:brightness-[0.97] ${tone}`}
         >
-          <span className="dot" aria-hidden />
-          <span className="truncate">
-            <span className="font-medium">{CHECKPOINT_TYPE_LABEL[type]}</span>
-            <span className="opacity-45"> · </span>
-            <span className="tabular-nums">{plannedDateLabel}</span>
-            <span className="opacity-45"> · </span>
-            <span>{label}</span>
-          </span>
-          {label !== fullLabel && <span className="sr-only">{fullLabel}</span>}
-        </button>
+          <span className="dot mt-1.5" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <div className="break-words">
+              {typeLabel && (
+                <>
+                  <span className="font-medium">{typeLabel}</span>
+                  <span className="opacity-45"> · </span>
+                </>
+              )}
+              {editingDate ? (
+                <input
+                  type="date"
+                  autoFocus
+                  defaultValue={plannedDateValue}
+                  aria-label="Дата проверки"
+                  onClick={(e) => e.stopPropagation()}
+                  onBlur={(e) => saveDate(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveDate(e.currentTarget.value);
+                    }
+                    if (e.key === "Escape") setEditingDate(false);
+                  }}
+                  className="field field-sm w-auto text-fg"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDateStatus(null);
+                    setEditingDate(true);
+                  }}
+                  title="Клик — изменить дату"
+                  className="rounded-sm tabular-nums underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                >
+                  {plannedDateLabel}
+                </button>
+              )}
+              <span className="opacity-45"> · </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen((v) => !v);
+                }}
+                aria-expanded={open}
+                className="rounded-sm"
+              >
+                {label}
+                {label !== fullLabel && <span className="sr-only">{fullLabel}</span>}
+              </button>
+            </div>
+            {shownResult && (
+              <p className="mt-0.5 whitespace-pre-wrap break-words text-fg">{shownResult}</p>
+            )}
+          </div>
+        </div>
         <button
           type="button"
           onClick={handleDelete}
@@ -107,50 +173,28 @@ export default function CheckpointItem({
         </span>
       )}
 
-      {open && (
-        <div className="panel flex flex-col gap-2 p-2">
-          <label className="flex flex-col gap-1">
-            <span className="micro">Дата проверки</span>
-            <input
-              type="date"
-              defaultValue={plannedDateValue}
-              onBlur={(e) => {
-                if (e.target.value === plannedDateValue) return;
-                startTransition(async () => {
-                  const res = await updateCheckpointDate(id, e.target.value);
-                  setDateStatus(
-                    res.ok
-                      ? { kind: "success", text: "Дата сохранена" }
-                      : { kind: "error", text: res.error },
-                  );
-                });
-              }}
-              className="field field-sm w-auto self-start"
-            />
-            {dateStatus && (
-              <span
-                className={`inline-flex items-center gap-1 text-2xs ${
-                  dateStatus.kind === "error" ? "text-danger" : "text-ok"
-                }`}
-              >
-                {dateStatus.kind === "error" ? (
-                  <IconAlert className="h-3 w-3 shrink-0" />
-                ) : (
-                  <IconCheck className="h-3 w-3 shrink-0" />
-                )}
-                {dateStatus.text}
-              </span>
-            )}
-          </label>
+      {dateStatus && (
+        <span className={`cell-status ${dateStatus.kind === "error" ? "text-danger" : "text-ok"}`}>
+          {dateStatus.kind === "error" ? (
+            <IconAlert className="h-3 w-3 shrink-0" />
+          ) : (
+            <IconCheck className="h-3 w-3 shrink-0" />
+          )}
+          {dateStatus.text}
+        </span>
+      )}
 
-          <div className="flex flex-col gap-1">
-            <span className="micro">{COPY.fields.result.label}</span>
-            <CheckpointResultForm
-              checkpointId={id}
-              defaultResult={result ?? ""}
-              onSaved={() => setLocallyDone(true)}
-            />
-          </div>
+      {open && (
+        <div className="panel flex flex-col gap-1 p-2">
+          <span className="micro">{COPY.fields.result.label}</span>
+          <CheckpointResultForm
+            checkpointId={id}
+            defaultResult={shownResult}
+            onSaved={(text) => {
+              setLocallyDone(true);
+              setSavedResult(text);
+            }}
+          />
         </div>
       )}
     </div>

@@ -123,15 +123,15 @@ export default function ResizableTable({ storageKey, columns, children }: Props)
           {columns.map((c, i) => (
             <th
               key={c.key}
-              // Подпись обрезается многоточием, поэтому полное название нужно
-              // держать в подсказке — иначе узкая колонка становится безымянной.
+              // Подпись в узкой колонке переносится на новую строку,
+              // подсказка с полным названием остаётся для пояснений.
               title={c.title ?? (typeof c.label === "string" ? c.label : undefined)}
               className="th-resizable"
             >
               {c.hiddenLabel ? (
                 <span className="sr-only">{c.label}</span>
               ) : (
-                <span className="block truncate">{c.label}</span>
+                <span className="block break-words">{c.label}</span>
               )}
               {i < columns.length - 1 && (
                 <div

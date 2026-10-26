@@ -421,7 +421,7 @@
     letter-spacing: 0.045em;
     text-transform: uppercase;
     color: var(--color-fg-muted);
-    white-space: nowrap;
+    vertical-align: bottom;
   }
 
   /* position:relative по умолчанию — чтобы внутри th можно было абсолютно

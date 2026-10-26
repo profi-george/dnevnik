@@ -15,7 +15,8 @@ import { IconAlert, IconCheck, IconPlus, IconSparkles, Spinner } from "@/compone
 type Props = {
   checkpointId: string;
   defaultResult: string;
-  onSaved?: () => void;
+  /** Сохранённый текст результата — пустая строка, если сняли без результата */
+  onSaved?: (result: string) => void;
 };
 
 type FollowUpState = "closed" | "parsing" | "review" | "created";
@@ -51,7 +52,7 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
         return;
       }
       setSaved(true);
-      onSaved?.();
+      onSaved?.(result.trim());
     });
   }
 
@@ -65,7 +66,7 @@ export default function CheckpointResultForm({ checkpointId, defaultResult, onSa
       }
       setResult("");
       setSaved(true);
-      onSaved?.();
+      onSaved?.("");
     });
   }
 

@@ -5,13 +5,13 @@ import { addCheckpoint } from "@/app/actions";
 import { addDays, parseDateInput, toDateInputValue } from "@/lib/dates";
 import { IconAlert, IconPlus } from "@/components/icons";
 
-type CheckpointType = "DAY" | "WEEK" | "MONTH" | "CUSTOM";
+type CheckpointType = "DAY" | "WEEK" | "MONTH";
 
-const TYPE_OPTIONS: { value: CheckpointType; label: string; offsetDays: number | null }[] = [
+// «Своей даты» здесь нет: дату любой проверки можно поменять кликом по ней в чипе
+const TYPE_OPTIONS: { value: CheckpointType; label: string; offsetDays: number }[] = [
   { value: "DAY", label: "через сутки", offsetDays: 1 },
   { value: "WEEK", label: "через неделю", offsetDays: 7 },
   { value: "MONTH", label: "через месяц", offsetDays: 30 },
-  { value: "CUSTOM", label: "своя дата", offsetDays: null },
 ];
 
 export default function AddCheckpointControl({
@@ -23,15 +23,13 @@ export default function AddCheckpointControl({
 }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<CheckpointType>("WEEK");
-  const [customDate, setCustomDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const selected = TYPE_OPTIONS.find((o) => o.value === type)!;
-  const computedDate =
-    selected.offsetDays !== null
-      ? toDateInputValue(addDays(parseDateInput(actionDateValue), selected.offsetDays))
-      : customDate;
+  const computedDate = toDateInputValue(
+    addDays(parseDateInput(actionDateValue), selected.offsetDays),
+  );
 
   function submit() {
     if (!computedDate) {
@@ -46,7 +44,6 @@ export default function AddCheckpointControl({
         return;
       }
       setOpen(false);
-      setCustomDate("");
     });
   }
 
@@ -77,16 +74,7 @@ export default function AddCheckpointControl({
           </option>
         ))}
       </select>
-      {type === "CUSTOM" ? (
-        <input
-          type="date"
-          value={customDate}
-          onChange={(e) => setCustomDate(e.target.value)}
-          className="field field-sm"
-        />
-      ) : (
-        <span className="text-2xs tabular-nums text-fg-subtle">План: {computedDate}</span>
-      )}
+      <span className="text-2xs tabular-nums text-fg-subtle">План: {computedDate}</span>
       <div className="flex items-center gap-1.5">
         <button
           type="button"
